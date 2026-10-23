@@ -1,0 +1,221 @@
+{
+  "category": {
+    "id": "middleware",
+    "title": "Middleware & Pipeline",
+    "description": "Bir isteğin uygulama içindeki yolculuğu. Sıralama her şeydir!",
+    "icon": "🔗",
+    "sortOrder": 5
+  },
+  "questions": [
+    {
+      "key": "middleware-easy-01",
+      "difficulty": "Easy",
+      "type": "MultipleChoice",
+      "prompt": "ASP.NET Core'da middleware nedir?",
+      "options": [
+        "Bir veritabanı tablosu",
+        "HTTP isteği ve yanıtı üzerinde sırayla çalışan, bir sonrakini çağırıp çağırmamaya karar verebilen bileşenler zinciri",
+        "Bir JavaScript kütüphanesi",
+        "Sadece hata loglayan bir sınıf"
+      ],
+      "correctOption": 1,
+      "explanation": "Her middleware isteği alır, bir şey yapar, isterse 'next' ile zincirdeki bir sonrakini çağırır ve yanıt geri dönerken tekrar araya girebilir. Exception handling, authentication, CORS ve static files birer middleware'dir."
+    },
+    {
+      "key": "middleware-easy-02",
+      "difficulty": "Easy",
+      "type": "MultipleChoice",
+      "prompt": "Bir middleware'in pipeline'ı 'kısa devre' yaptırması (short-circuit) ne demektir?",
+      "options": [
+        "Sunucuyu kapatması",
+        "İsteği iki kez çalıştırması",
+        "next()'i çağırmadan yanıtı kendisinin üretmesi; sonraki middleware'lerin çalışmaması",
+        "Tüm middleware'leri yeniden başlatması"
+      ],
+      "correctOption": 2,
+      "explanation": "Örneğin static files middleware istenen dosyayı bulursa yanıtı kendisi döner ve sonraki middleware'ler hiç çalışmaz. Rate limiter da limit aşılınca 429 dönüp zinciri keser."
+    },
+    {
+      "key": "middleware-easy-03",
+      "difficulty": "Easy",
+      "type": "MultipleChoice",
+      "prompt": "app.Use(...) ile app.Run(...) arasındaki fark nedir?",
+      "options": [
+        "Fark yoktur",
+        "Run yalnızca Development ortamında çalışır",
+        "Use yalnızca async çalışır",
+        "Use bir sonraki middleware'i çağırabilir; Run terminal middleware'dir ve kendisinden sonrakini çağırmaz"
+      ],
+      "correctOption": 3,
+      "explanation": "app.Run zincirin sonudur, 'next' parametresi bile yoktur. app.Use ile yazılan middleware ise 'await next(context)' diyerek isteği zincirde ilerletir."
+    },
+    {
+      "key": "middleware-easy-04",
+      "difficulty": "Easy",
+      "type": "Ordering",
+      "prompt": "Kimlik doğrulama ile ilgili satırları doğru sıraya diz.",
+      "options": [
+        "app.UseRouting();",
+        "app.UseAuthentication();",
+        "app.UseAuthorization();",
+        "app.MapControllers();"
+      ],
+      "explanation": "Authorization için iki bilgi gerekir: kullanıcının kim olduğu (Authentication önce gelir) ve hangi endpoint'e gidildiği (Routing önce gelir). Endpoint'ler en sonda eşlenir. Minimal hosting bu middleware'lerin çoğunu otomatik ekler, ama elle eklediğinizde sıra önemlidir."
+    },
+    {
+      "key": "middleware-easy-05",
+      "difficulty": "Easy",
+      "type": "MultipleChoice",
+      "prompt": "İstek süresini ölçen bir middleware'de kronometre ne zaman durdurulmalı?",
+      "options": [
+        "await next(context) çağrısından sonra",
+        "await next(context) çağrısından önce",
+        "Middleware'in constructor'ında",
+        "Program.cs'in en sonunda"
+      ],
+      "correctOption": 0,
+      "explanation": "Middleware'ler soğan katmanları gibidir: next'ten önceki kod istek giderken, sonraki kod yanıt dönerken çalışır. Kronometre next'ten önce başlatılır, sonra durdurulur."
+    },
+    {
+      "key": "middleware-medium-01",
+      "difficulty": "Medium",
+      "type": "Ordering",
+      "prompt": "Tipik bir ASP.NET Core API pipeline'ını doğru sıraya diz.",
+      "options": [
+        "app.UseExceptionHandler();",
+        "app.UseHttpsRedirection();",
+        "app.UseCors();",
+        "app.UseAuthentication();",
+        "app.UseAuthorization();",
+        "app.MapControllers();"
+      ],
+      "explanation": "Exception handler en başta olmalı ki sonrakilerin tüm hatalarını yakalayabilsin. CORS, authentication'dan önce gelir çünkü tarayıcının preflight (OPTIONS) istekleri kimlik bilgisi taşımaz. Sonra authentication, authorization ve en sonda endpoint'ler."
+    },
+    {
+      "key": "middleware-medium-02",
+      "difficulty": "Medium",
+      "type": "BugHunt",
+      "prompt": "Bu middleware hangi satırda exception fırlatabilir?",
+      "code": [
+        "app.Use(async (context, next) =>",
+        "{",
+        "    await next(context);",
+        "    context.Response.Headers[\"X-Powered-By\"] = \"DotnetQuest\";",
+        "});"
+      ],
+      "correctLine": 4,
+      "explanation": "next() döndüğünde yanıt büyük ihtimalle istemciye gönderilmeye başlamıştır ve header'lar artık değiştirilemez ('Headers are read-only, response has already started'). Header'ı next()'ten önce ekleyin ya da context.Response.OnStarting(...) kullanın."
+    },
+    {
+      "key": "middleware-medium-03",
+      "difficulty": "Medium",
+      "type": "MultipleChoice",
+      "prompt": ".NET 8+ ile global exception handling için önerilen yaklaşım hangisi?",
+      "options": [
+        "Her endpoint'e try-catch yazmak",
+        "IExceptionHandler implementasyonu + services.AddExceptionHandler<T>() + app.UseExceptionHandler()",
+        "Exception'ları hiç yakalamamak",
+        "AppDomain.UnhandledException olayını kullanmak"
+      ],
+      "correctOption": 1,
+      "explanation": "IExceptionHandler, DI desteğiyle merkezi hata yönetimi sağlar. AddProblemDetails ile birlikte stack trace sızdırmadan standart bir 500 yanıtı üretir. Bu oyunun API'sindeki GlobalExceptionHandler bunun bir örneği."
+    },
+    {
+      "key": "middleware-medium-04",
+      "difficulty": "Medium",
+      "type": "MultipleChoice",
+      "prompt": "UseStaticFiles() pipeline'da neden genellikle UseAuthentication()'dan önce gelir?",
+      "options": [
+        "Statik dosyalar her zaman şifrelidir",
+        "Sıra fark etmez",
+        "wwwroot'taki dosyalar herkese açıktır; erken kısa devre yaparak gereksiz authentication işi atlanır",
+        "Authentication statik dosyaları siler"
+      ],
+      "correctOption": 2,
+      "explanation": "Logo, CSS, JS gibi herkese açık dosyalar için kimlik doğrulama yapmak boşa iştir. Yetki gerektiren dosyaları wwwroot dışında tutup yetkili bir endpoint üzerinden sunun."
+    },
+    {
+      "key": "middleware-medium-05",
+      "difficulty": "Medium",
+      "type": "MultipleChoice",
+      "prompt": "Endpoint filter (IEndpointFilter) ile middleware arasındaki temel fark nedir?",
+      "options": [
+        "Endpoint filter yalnızca eşleşen endpoint için, model binding'den sonra çalışır ve handler argümanlarına erişebilir; middleware tüm istekler için çalışır",
+        "Fark yoktur",
+        "Endpoint filter'lar yalnızca controller'larda çalışır",
+        "Middleware'ler handler argümanlarına erişebilir, filter'lar erişemez"
+      ],
+      "correctOption": 0,
+      "explanation": "Endpoint filter'lar MVC'deki action filter'ların Minimal API karşılığıdır. context.Arguments ile bağlanmış parametrelere erişebildikleri için doğrulama ve loglama için idealdir. Middleware ise endpoint'ten bağımsız, genel işler içindir."
+    },
+    {
+      "key": "middleware-hard-01",
+      "difficulty": "Hard",
+      "type": "Ordering",
+      "prompt": "Endpoint'e özel ve kullanıcı id'sine göre bölümlenen rate limiting için doğru sırayı kur.",
+      "options": [
+        "app.UseRouting();",
+        "app.UseAuthentication();",
+        "app.UseRateLimiter();",
+        "app.MapGet(\"/games\", ...).RequireRateLimiting(\"per-user\");"
+      ],
+      "explanation": "Endpoint'e özel bir politika için limiter'ın hangi endpoint'e gidildiğini bilmesi gerekir (routing'den sonra). Bölümleme anahtarı kullanıcı id'si olduğu için authentication'dan da sonra gelmelidir; yoksa herkes 'anonim' sayılır. Bu oyunun API'si de bu sırayı kullanıyor."
+    },
+    {
+      "key": "middleware-hard-02",
+      "difficulty": "Hard",
+      "type": "MultipleChoice",
+      "prompt": "Request body'yi middleware'de okuyup logladınız; sonrasında model binding gövdeyi boş görüyor. Çözüm ne?",
+      "options": [
+        "Gövdeyi iki kez okumak mümkün değildir, loglamaktan vazgeçmek gerekir",
+        "context.Request.EnableBuffering() çağırıp okuduktan sonra Body.Position = 0 yapmak",
+        "Gövdeyi static bir değişkende saklamak",
+        "Content-Length header'ını sıfırlamak"
+      ],
+      "correctOption": 1,
+      "explanation": "Request body ileri yönlü (forward-only) bir stream'dir. EnableBuffering onu geri sarılabilir hale getirir. Büyük gövdelerde bellek ve disk maliyetine dikkat edin; hazır çözüm olarak AddHttpLogging middleware'i de vardır."
+    },
+    {
+      "key": "middleware-hard-03",
+      "difficulty": "Hard",
+      "type": "MultipleChoice",
+      "prompt": "Sınıf tabanlı (conventional) middleware'ler nasıl oluşturulur ve Scoped bir servise nasıl erişmelidir?",
+      "options": [
+        "Her istekte yeniden oluşturulur; scoped servisi constructor'dan alabilir",
+        "Transient'tır; scoped servis kullanamaz",
+        "Uygulama başlarken bir kez oluşturulur; scoped servisleri constructor yerine InvokeAsync metodunun parametresi olarak almalıdır",
+        "Scoped'dur; her şeyi constructor'dan alabilir"
+      ],
+      "correctOption": 2,
+      "explanation": "Conventional middleware fiilen singleton'dır, constructor'a scoped servis almak captive dependency olur. Alternatif: IMiddleware arayüzünü implemente edip middleware'i DI'a kaydetmek (factory tabanlı, istek başına çözümlenir)."
+    },
+    {
+      "key": "middleware-hard-04",
+      "difficulty": "Hard",
+      "type": "MultipleChoice",
+      "prompt": "Yanıt istemciye gönderilmeye başladıktan sonra (ör. stream sırasında) bir exception fırlarsa UseExceptionHandler ne yapar?",
+      "options": [
+        "Yanıtı temizleyip 500 ProblemDetails yazar",
+        "İstemciye 200 döner ve exception'ı yutar",
+        "Yanıt başladığı için status kodu ve header'ları değiştiremez; exception yeniden fırlatılır ve bağlantı kesilir",
+        "İsteği baştan tekrar çalıştırır"
+      ],
+      "correctOption": 2,
+      "explanation": "Status kodu ve header'lar bir kez gönderildikten sonra geri alınamaz. Bu yüzden doğrulamayı ve hata ihtimali olan işleri yanıtı yazmaya başlamadan önce yapın."
+    },
+    {
+      "key": "middleware-hard-05",
+      "difficulty": "Hard",
+      "type": "MultipleChoice",
+      "prompt": "app.MapWhen(...) ile app.UseWhen(...) arasındaki fark nedir?",
+      "options": [
+        "İkisi de pipeline'ı dallandırmaz",
+        "MapWhen koşula göre ayrı bir dal açar ve ana pipeline'a geri dönmez; UseWhen koşullu dalı çalıştırır ve sonra ana pipeline'a geri döner",
+        "UseWhen ana pipeline'a geri dönmez, MapWhen döner",
+        "MapWhen yalnızca GET istekleri içindir"
+      ],
+      "correctOption": 1,
+      "explanation": "MapWhen (ve path tabanlı app.Map) tamamen ayrı bir pipeline dalı oluşturur. UseWhen ise yalnızca koşul sağlandığında birkaç ek middleware çalıştırıp isteği ana zincire geri verir; örneğin sadece /api altında ek loglama yapmak için idealdir."
+    }
+  ]
+}

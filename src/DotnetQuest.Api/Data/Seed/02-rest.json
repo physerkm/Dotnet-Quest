@@ -1,0 +1,201 @@
+{
+  "category": {
+    "id": "rest",
+    "title": "REST API Tasarımı",
+    "description": "URL'ler, DTO'lar, sayfalama, versiyonlama: iyi bir API sözleşmesi tasarla.",
+    "icon": "🧭",
+    "sortOrder": 2
+  },
+  "questions": [
+    {
+      "key": "rest-easy-01",
+      "difficulty": "Easy",
+      "type": "MultipleChoice",
+      "prompt": "Ürün listesini getiren endpoint için en RESTful URL hangisi?",
+      "options": ["GET /api/getProducts", "POST /api/products/list", "GET /api/products", "GET /api/product/getAll"],
+      "correctOption": 2,
+      "explanation": "URL'ler kaynağı temsil eder (isim, genelde çoğul); eylemi HTTP metodu belirtir. 'get', 'list', 'create' gibi fiiller URL'de olmamalıdır."
+    },
+    {
+      "key": "rest-easy-02",
+      "difficulty": "Easy",
+      "type": "MultipleChoice",
+      "prompt": "42 numaralı siparişin kalemlerini getirmek için en uygun URL hangisi?",
+      "options": ["GET /api/orders/42/items", "GET /api/getOrderItems/42", "POST /api/orders/items", "GET /api/orders/items/get?id=42"],
+      "correctOption": 0,
+      "explanation": "Alt kaynaklar iç içe URL ile ifade edilir: /orders/42/items. Okunabilirliği korumak için iç içe yapıyı 1-2 seviyede tutun. Filtreleme için query string de (GET /api/order-items?orderId=42) geçerli bir alternatiftir."
+    },
+    {
+      "key": "rest-easy-03",
+      "difficulty": "Easy",
+      "type": "MultipleChoice",
+      "prompt": "5 numaralı ürünü silmek için hangi istek doğru?",
+      "options": ["GET /api/products/5/delete", "POST /api/products/delete/5", "PUT /api/products/5?action=delete", "DELETE /api/products/5"],
+      "correctOption": 3,
+      "explanation": "Silme işlemi DELETE metoduyla, kaynağın URL'ine yapılır. GET ile silme yapmak çok tehlikelidir: tarayıcılar, crawler'lar ve önbellekler GET isteklerini 'yan etkisiz' kabul edip kendiliğinden tekrarlayabilir."
+    },
+    {
+      "key": "rest-easy-04",
+      "difficulty": "Easy",
+      "type": "MultipleChoice",
+      "prompt": "ASP.NET Core Web API'de JSON alan adları için varsayılan isimlendirme hangisidir?",
+      "options": ["PascalCase (ProductName)", "snake_case (product_name)", "camelCase (productName)", "kebab-case (product-name)"],
+      "correctOption": 2,
+      "explanation": "System.Text.Json web varsayılanları (JsonSerializerDefaults.Web) camelCase kullanır. C# tarafındaki PascalCase property'ler otomatik olarak camelCase'e çevrilir. En önemlisi, API genelinde tek bir stil seçip tutarlı olmaktır."
+    },
+    {
+      "key": "rest-easy-05",
+      "difficulty": "Easy",
+      "type": "MultipleChoice",
+      "prompt": "API'den neden veritabanı entity'si yerine DTO (Data Transfer Object) döndürmeliyiz?",
+      "options": [
+        "DTO'lar her zaman daha hızlı serialize edilir",
+        "İç modeli (ör. PasswordHash) gizlemek ve API sözleşmesini veritabanı şemasından bağımsız tutmak için",
+        "Entity'ler JSON'a çevrilemez",
+        "EF Core bunu zorunlu kılar"
+      ],
+      "correctOption": 1,
+      "explanation": "Entity döndürmek hassas alanların sızmasına, navigation property'lerde döngüsel referanslara ve şema değişikliğinin API'yi kırmasına yol açar. Girdi tarafında da DTO kullanmak over-posting saldırılarını önler."
+    },
+    {
+      "key": "rest-medium-01",
+      "difficulty": "Medium",
+      "type": "MultipleChoice",
+      "prompt": "Çok büyük bir listeyi döndürürken best practice nedir?",
+      "options": [
+        "Tüm kayıtları tek seferde döndürmek",
+        "İstemci kaç kayıt isterse o kadar döndürmek",
+        "Sayfalama uygulamak (ör. ?page=2&pageSize=20) ve pageSize için sunucuda üst sınır koymak",
+        "Listeyi sıkıştırıp base64 olarak döndürmek"
+      ],
+      "correctOption": 2,
+      "explanation": "Sınırsız listeler hem veritabanını hem ağı yorar; kötü niyetli biri pageSize=1000000 gönderebilir. pageSize'ı sunucuda sınırlayın (ör. en fazla 100). Çok büyük ve sık değişen veride cursor (keyset) pagination daha performanslıdır."
+    },
+    {
+      "key": "rest-medium-02",
+      "difficulty": "Medium",
+      "type": "MultipleChoice",
+      "prompt": "Aşağıdakilerden hangisi yaygın bir API versiyonlama yöntemi DEĞİLDİR?",
+      "options": [
+        "URL segmenti: /api/v2/products",
+        "Her versiyon için farklı bir HTTP metodu kullanmak",
+        "Query string: ?api-version=2.0",
+        "Header: X-Api-Version: 2"
+      ],
+      "correctOption": 1,
+      "explanation": "URL, query string, header ve media type versiyonlama yaygın yöntemlerdir. .NET'te Asp.Versioning.Http paketi hepsini destekler. Mevcut istemcileri kıran (breaking) bir değişiklik yaptığınızda yeni versiyon açın."
+    },
+    {
+      "key": "rest-medium-03",
+      "difficulty": "Medium",
+      "type": "MultipleChoice",
+      "prompt": "Over-posting (mass assignment) saldırısı nedir?",
+      "options": [
+        "Saniyede çok fazla istek göndermek",
+        "Aynı isteği iki kez göndermek",
+        "Çok büyük bir dosya yüklemek",
+        "İstemcinin, değiştirmemesi gereken alanları (ör. \"isAdmin\": true) gövdeye ekleyip güncellemesi"
+      ],
+      "correctOption": 3,
+      "explanation": "Entity'yi doğrudan model binding ile alırsanız istemci gövdeye ekstra alanlar koyup yetkisini yükseltebilir. Çözüm: Sadece izin verilen alanları içeren istek DTO'ları kullanmak (ör. UpdateProfileRequest(string DisplayName))."
+    },
+    {
+      "key": "rest-medium-04",
+      "difficulty": "Medium",
+      "type": "Ordering",
+      "prompt": "Bir POST isteğinin Minimal API'de ele alınış adımlarını doğru sıraya diz.",
+      "options": [
+        "Routing: istek uygun endpoint ile eşleşir",
+        "Model binding: JSON gövdesi istek DTO'suna çevrilir",
+        "Validation: DTO kurallara göre doğrulanır",
+        "Handler: iş mantığı çalışır ve veri kaydedilir",
+        "Yanıt: 201 Created + Location header döner"
+      ],
+      "explanation": "Önce routing doğru endpoint'i bulur (araya authentication/authorization girer), sonra gövde DTO'ya bağlanır ve doğrulanır. Doğrulama başarısızsa handler hiç çalışmaz ve 400 döner. Handler işini bitirince uygun status koduyla yanıt üretilir."
+    },
+    {
+      "key": "rest-medium-05",
+      "difficulty": "Medium",
+      "type": "MultipleChoice",
+      "prompt": "Ürünlerde filtreleme ve sıralama için en uygun tasarım hangisi?",
+      "options": [
+        "GET /api/products/books/10/price-desc",
+        "GET /api/products?category=books&minPrice=10&sort=-price",
+        "GET /api/searchProducts/books",
+        "POST /api/products/filter (gövdesiz)"
+      ],
+      "correctOption": 1,
+      "explanation": "Filtreleme, sıralama ve sayfalama query string parametreleriyle yapılır. Sorgu çok karmaşıksa (iç içe filtre ağaçları), POST /api/products/search + gövde kabul edilen bir istisnadır."
+    },
+    {
+      "key": "rest-hard-01",
+      "difficulty": "Hard",
+      "type": "MultipleChoice",
+      "prompt": "POST /api/payments isteği ağ hatası yüzünden istemci tarafından tekrar gönderilirse çift ödeme nasıl önlenir?",
+      "options": [
+        "İstemcide timeout süresini artırmak",
+        "POST yerine GET kullanmak",
+        "Idempotency-Key header'ı: sunucu aynı anahtarla gelen isteği tekrar işlemez, ilk yanıtı döndürür",
+        "İstemciye asla tekrar denememesini söylemek"
+      ],
+      "correctOption": 2,
+      "explanation": "Stripe gibi ödeme API'lerinin kullandığı desen: istemci her mantıksal işlem için benzersiz bir Idempotency-Key üretir. Sunucu anahtarı ve yanıtı saklar; aynı anahtarla tekrar gelen istekte işlemi yeniden yapmadan kayıtlı yanıtı döner."
+    },
+    {
+      "key": "rest-hard-02",
+      "difficulty": "Hard",
+      "type": "MultipleChoice",
+      "prompt": "Offset pagination (Skip/Take) yerine cursor (keyset) pagination neden tercih edilir?",
+      "options": [
+        "Toplam sayfa sayısını kolayca gösterir",
+        "Rastgele bir sayfaya atlamayı kolaylaştırır",
+        "Implementasyonu daha basittir",
+        "Büyük offset'lerde veritabanı atlanan satırları yine tarar; 'WHERE Id > @lastId' index'i kullanır ve araya kayıt eklenince sayfalar kaymaz"
+      ],
+      "correctOption": 3,
+      "explanation": "OFFSET 100000 yavaştır ve sayfalama sırasında yeni kayıt eklenirse kayıtlar tekrarlanır veya atlanır. Keyset pagination bu iki sorunu da çözer. Dezavantajı: 'Sayfa 57'ye atla' gibi rastgele erişim yapılamaz."
+    },
+    {
+      "key": "rest-hard-03",
+      "difficulty": "Hard",
+      "type": "MultipleChoice",
+      "prompt": "HATEOAS ilkesi neyi ifade eder?",
+      "options": [
+        "Yanıtların, istemcinin yapabileceği sonraki adımları gösteren linkler içermesi",
+        "API'nin yalnızca HTTPS kullanması",
+        "Tüm hataların 500 dönmesi",
+        "Her kaynağın bir ETag'i olması"
+      ],
+      "correctOption": 0,
+      "explanation": "Hypermedia as the Engine of Application State: yanıtlar '_links' gibi alanlarla ilgili eylemleri (self, next, cancel) bildirir. Richardson Olgunluk Modeli'nin 3. seviyesidir. Çoğu API tam uygulamaz ama sayfalama linkleri gibi parçaları faydalıdır."
+    },
+    {
+      "key": "rest-hard-04",
+      "difficulty": "Hard",
+      "type": "MultipleChoice",
+      "prompt": "'POST /api/orders/42/cancel' endpoint'i hakkında hangisi doğru?",
+      "options": [
+        "REST'e tamamen aykırıdır, asla kullanılmamalı",
+        "CRUD'a uymayan durum geçişleri için kabul gören pragmatik bir yaklaşımdır",
+        "Bu işlem GET ile yapılmalıdır",
+        "DELETE /api/orders/42 ile tamamen aynı anlama gelir"
+      ],
+      "correctOption": 1,
+      "explanation": "Saf REST'te her şey 'kaynak + metot'tur, ama 'iptal et', 'onayla' gibi iş eylemleri için eylem endpoint'leri yaygın ve okunabilirdir. Alternatifi PATCH ile status alanını değiştirmektir. DELETE kaydın silinmesini ima eder; iptal edilen sipariş genelde silinmez."
+    },
+    {
+      "key": "rest-hard-05",
+      "difficulty": "Hard",
+      "type": "MultipleChoice",
+      "prompt": "Hangi değişiklik mevcut istemciler için breaking change SAYILMAZ?",
+      "options": [
+        "Yanıttan bir alanı kaldırmak",
+        "Bir alanın tipini string'den int'e çevirmek",
+        "İsteğe yeni ve zorunlu bir alan eklemek",
+        "Yanıta yeni ve opsiyonel bir alan eklemek"
+      ],
+      "correctOption": 3,
+      "explanation": "Yanıta alan eklemek genelde güvenlidir; istemciler bilmedikleri alanları yok saymalıdır ('tolerant reader'). Alan silmek, tip veya isim değiştirmek ya da zorunlu yeni bir girdi eklemek mevcut istemcileri kırar ve yeni bir versiyon gerektirir."
+    }
+  ]
+}

@@ -1,0 +1,220 @@
+{
+  "category": {
+    "id": "efcore",
+    "title": "EF Core & Veri",
+    "description": "Performanslı ve güvenli veri erişimi: N+1, tracking, migration ve concurrency.",
+    "icon": "🗄️",
+    "sortOrder": 6
+  },
+  "questions": [
+    {
+      "key": "efcore-easy-01",
+      "difficulty": "Easy",
+      "type": "MultipleChoice",
+      "prompt": "Sadece okuma yapılacak sorgularda performans için ne eklenmeli?",
+      "options": ["AsTracking()", "Include()", "AsNoTracking()", "ToList() iki kez"],
+      "correctOption": 2,
+      "explanation": "Change tracker, okunan her entity'nin bir kopyasını tutar. Sadece okuyorsanız AsNoTracking bellek ve CPU tasarrufu sağlar. Daha da iyisi, Select ile doğrudan DTO'ya projeksiyon yapmaktır."
+    },
+    {
+      "key": "efcore-easy-02",
+      "difficulty": "Easy",
+      "type": "MultipleChoice",
+      "prompt": "Veritabanı şemasını kod değişiklikleriyle senkron tutmanın önerilen yolu hangisi?",
+      "options": [
+        "Tabloları elle oluşturmak",
+        "EF Core Migrations: 'dotnet ef migrations add <Ad>' ve 'dotnet ef database update'",
+        "Her açılışta veritabanını silip yeniden oluşturmak",
+        "Her ortamda EnsureCreated() çağırmak"
+      ],
+      "correctOption": 1,
+      "explanation": "Migration'lar şema değişikliklerinin versiyonlanmış geçmişidir ve kaynak kontrolüne eklenir. EnsureCreated migration'larla uyumsuzdur; yalnızca prototip ve testler için uygundur."
+    },
+    {
+      "key": "efcore-easy-03",
+      "difficulty": "Easy",
+      "type": "MultipleChoice",
+      "prompt": "Gerçek şifre içeren bir connection string nerede saklanmalı?",
+      "options": [
+        "Kodun içinde sabit string olarak",
+        "appsettings.json içinde, Git'e commit edilerek",
+        "Development'ta User Secrets, production'da environment variable veya Key Vault gibi bir gizli bilgi yönetimi",
+        "Frontend kodunda"
+      ],
+      "correctOption": 2,
+      "explanation": "Git'e giren bir şifre sonsuza kadar geçmişte kalır. 'dotnet user-secrets set ConnectionStrings:Default ...' ile geliştirme sırasında, environment variable veya Azure Key Vault ile production'da saklayın. Kod her durumda builder.Configuration.GetConnectionString(\"Default\") ile okur."
+    },
+    {
+      "key": "efcore-easy-04",
+      "difficulty": "Easy",
+      "type": "MultipleChoice",
+      "prompt": "AddDbContext ile kaydedilen DbContext'in varsayılan servis ömrü nedir?",
+      "options": ["Singleton", "Transient", "Static", "Scoped"],
+      "correctOption": 3,
+      "explanation": "DbContext bir 'unit of work'tür: istek başına bir tane oluşturulur ve istek bitince dispose edilir. Thread-safe değildir; istekler arasında paylaşılmamalıdır."
+    },
+    {
+      "key": "efcore-easy-05",
+      "difficulty": "Easy",
+      "type": "MultipleChoice",
+      "prompt": "Sadece ürün adlarını listelemek için en verimli sorgu hangisi?",
+      "options": [
+        "(await db.Products.ToListAsync()).Select(p => p.Name)",
+        "await db.Products.Select(p => p.Name).ToListAsync()",
+        "await db.Products.Include(p => p.Category).ToListAsync()",
+        "db.Products.AsEnumerable().Select(p => p.Name).ToList()"
+      ],
+      "correctOption": 1,
+      "explanation": "Select'i ToListAsync'ten ÖNCE yazmak SQL'e 'SELECT Name FROM Products' olarak çevrilir. Önce ToList çağırmak tüm kolonları belleğe çeker ve projeksiyonu C#'ta yapar."
+    },
+    {
+      "key": "efcore-medium-01",
+      "difficulty": "Medium",
+      "type": "BugHunt",
+      "prompt": "N+1 sorgu problemine yol açan satırı bul.",
+      "code": [
+        "var orders = await db.Orders",
+        "    .Where(o => o.CreatedAt > since)",
+        "    .ToListAsync(ct);",
+        "",
+        "foreach (var order in orders)",
+        "{",
+        "    var customer = await db.Customers.FindAsync([order.CustomerId], ct);",
+        "    Console.WriteLine($\"{order.Id}: {customer!.Name}\");",
+        "}"
+      ],
+      "correctLine": 7,
+      "explanation": "Döngüdeki her sipariş için ayrı bir sorgu atılır: 1 + N sorgu. 1000 sipariş = 1001 sorgu! Çözüm: Include(o => o.Customer) ya da tek sorguda projeksiyon: .Select(o => new { o.Id, CustomerName = o.Customer.Name })."
+    },
+    {
+      "key": "efcore-medium-02",
+      "difficulty": "Medium",
+      "type": "MultipleChoice",
+      "prompt": "Birden fazla koleksiyonu Include ederken oluşan 'cartesian explosion' nasıl hafifletilir?",
+      "options": [
+        "Daha fazla Include eklemek",
+        "AsSplitQuery() ile her koleksiyonu ayrı bir SQL sorgusuyla yüklemek",
+        "AsNoTracking'i kaldırmak",
+        "Raw SQL ile SELECT * çalıştırmak"
+      ],
+      "correctOption": 1,
+      "explanation": "Tek sorguda iki koleksiyonu JOIN'lemek satır sayısını çarpar (10 sipariş x 10 kalem x 10 ödeme = 1000 satır). AsSplitQuery her koleksiyon için ayrı sorgu atar. Dezavantajı: sorgular arasında veri değişirse tutarsızlık olabilir."
+    },
+    {
+      "key": "efcore-medium-03",
+      "difficulty": "Medium",
+      "type": "MultipleChoice",
+      "prompt": "İki kullanıcı aynı kaydı aynı anda güncellerse 'son yazan kazanır' sorununu önlemek için EF Core'da ne kullanılır?",
+      "options": [
+        "lock anahtar kelimesi",
+        "Her güncellemede tüm tabloyu kilitlemek",
+        "Transaction'ları kapatmak",
+        "Optimistic concurrency: concurrency token ([Timestamp] veya IsConcurrencyToken) ve DbUpdateConcurrencyException'ı yakalamak"
+      ],
+      "correctOption": 3,
+      "explanation": "SaveChanges, WHERE koşuluna token'ın eski değerini ekler; 0 satır etkilenirse DbUpdateConcurrencyException fırlar. API'de bunu 409 Conflict ya da ETag kullanıyorsanız 412 olarak yansıtın. Bu oyun da aynı cevabın iki kez sayılmasını bu yöntemle engelliyor!"
+    },
+    {
+      "key": "efcore-medium-04",
+      "difficulty": "Medium",
+      "type": "MultipleChoice",
+      "prompt": "1000 ürünün fiyatını %10 artırmanın en verimli yolu (EF Core 7+) hangisi?",
+      "options": [
+        "Hepsini yükleyip döngüde güncelleyip SaveChanges çağırmak",
+        "Her ürün için ayrı SaveChanges çağırmak",
+        "ExecuteUpdateAsync(s => s.SetProperty(p => p.Price, p => p.Price * 1.1m))",
+        "Her ürün için ayrı bir raw SQL UPDATE çalıştırmak"
+      ],
+      "correctOption": 2,
+      "explanation": "ExecuteUpdate/ExecuteDelete tek bir SQL komutu üretir ve entity'leri belleğe yüklemez. Dikkat: change tracker'ı atlar, zaten yüklenmiş entity'ler güncellenmez ve SaveChanges'ten bağımsız olarak hemen çalışır."
+    },
+    {
+      "key": "efcore-medium-05",
+      "difficulty": "Medium",
+      "type": "MultipleChoice",
+      "prompt": "IQueryable<T> ile IEnumerable<T> arasındaki kritik fark nedir?",
+      "options": [
+        "IQueryable sorguyu ifade ağacı olarak tutar ve veritabanında çalıştırır; IEnumerable'a geçtikten sonraki LINQ işlemleri bellekte çalışır",
+        "Fark yoktur",
+        "IEnumerable her zaman daha hızlıdır",
+        "IQueryable yalnızca List<T> ile çalışır"
+      ],
+      "correctOption": 0,
+      "explanation": "Bir repository'den IEnumerable döndürüp sonra .Where uygularsanız tüm tablo çekilir ve filtre bellekte yapılır. Filtreleri, sıralamayı ve sayfalamayı IQueryable aşamasında uygulayın."
+    },
+    {
+      "key": "efcore-hard-01",
+      "difficulty": "Hard",
+      "type": "BugHunt",
+      "prompt": "Bu arama sorgusunda performans sorununun kaynağı olan satırı bul.",
+      "code": [
+        "var keyword = request.Search.ToLower();",
+        "var products = db.Products",
+        "    .AsNoTracking()",
+        "    .Where(p => p.IsActive)",
+        "    .AsEnumerable()",
+        "    .Where(p => p.Name.ToLower().Contains(keyword))",
+        "    .Take(20)",
+        "    .ToList();"
+      ],
+      "correctLine": 5,
+      "explanation": "AsEnumerable sorguyu orada keser: TÜM aktif ürünler veritabanından çekilir, arama ve Take(20) bellekte yapılır. Filtreyi ve Take'i IQueryable üzerinde tutun: .Where(p => p.Name.Contains(keyword)).Take(20).ToListAsync(ct)."
+    },
+    {
+      "key": "efcore-hard-02",
+      "difficulty": "Hard",
+      "type": "MultipleChoice",
+      "prompt": "Compiled query (EF.CompileAsyncQuery) ne zaman faydalıdır?",
+      "options": [
+        "Her sorguda zorunludur",
+        "Yalnızca raw SQL ile",
+        "Migration'ları hızlandırmak için",
+        "Çok sık çalışan, aynı şekilli sorgularda LINQ'dan SQL'e çeviri ve cache arama maliyetini atlamak için"
+      ],
+      "correctOption": 3,
+      "explanation": "EF Core sorgu planlarını zaten cache'ler; compiled query'ler bu cache aramasını da atlayarak çok sıcak yollarda küçük ama ölçülebilir kazanç sağlar. Kural: önce ölçün (BenchmarkDotNet), sonra optimize edin."
+    },
+    {
+      "key": "efcore-hard-03",
+      "difficulty": "Hard",
+      "type": "MultipleChoice",
+      "prompt": "Migration'ları production'da uygulamak için önerilen yaklaşım hangisi?",
+      "options": [
+        "Deploy pipeline'ında idempotent SQL script ('dotnet ef migrations script --idempotent') veya migration bundle ile kontrollü uygulamak",
+        "Her instance'ta uygulama açılırken Database.Migrate() çağırmak",
+        "Migration hiç kullanmamak",
+        "Veritabanını silip EnsureCreated çağırmak"
+      ],
+      "correctOption": 0,
+      "explanation": "Açılışta migrate etmek uygulama kullanıcısına DDL (tablo değiştirme) yetkisi vermeyi gerektirir, başlangıcı yavaşlatır ve migration hata verirse hiçbir instance açılamaz. Script veya bundle ile migration'lar gözden geçirilebilir ve kontrollü uygulanır. (Bu oyun gibi tek instance'lı bir SQLite demosunda açılışta migrate etmek kabul edilebilir.)"
+    },
+    {
+      "key": "efcore-hard-04",
+      "difficulty": "Hard",
+      "type": "MultipleChoice",
+      "prompt": "Global query filter (HasQueryFilter) için klasik kullanım senaryosu hangisidir?",
+      "options": [
+        "Index oluşturmak",
+        "Soft delete (IsDeleted) ve multi-tenancy (TenantId) filtrelerini her sorguya otomatik eklemek",
+        "Connection string seçmek",
+        "Migration oluşturmak"
+      ],
+      "correctOption": 1,
+      "explanation": "Her sorguya .Where(x => !x.IsDeleted) yazmayı unutma riskini ortadan kaldırır. Gerektiğinde IgnoreQueryFilters() ile kapatılır. EF Core 10 ile isimli (named) filtreler geldi; birden fazla filtreyi birbirinden bağımsız kapatabilirsiniz."
+    },
+    {
+      "key": "efcore-hard-05",
+      "difficulty": "Hard",
+      "type": "MultipleChoice",
+      "prompt": "Aşağıdakilerden hangisi SQL injection'a karşı GÜVENSİZDİR?",
+      "options": [
+        "db.Users.Where(u => u.Email == email)",
+        "db.Users.FromSql($\"SELECT * FROM Users WHERE Email = {email}\")",
+        "db.Users.FromSqlRaw(\"SELECT * FROM Users WHERE Email = '\" + email + \"'\")",
+        "db.Database.ExecuteSql($\"DELETE FROM Logs WHERE Id = {id}\")"
+      ],
+      "correctOption": 2,
+      "explanation": "FromSql ve ExecuteSql interpolated string'leri otomatik olarak SQL parametrelerine çevirir (güvenli). FromSqlRaw'a kullanıcı girdisini string birleştirerek vermek klasik bir SQL injection açığıdır. Raw kullanmanız gerekiyorsa parametreleri ayrı geçin."
+    }
+  ]
+}

@@ -1,0 +1,161 @@
+{
+  "category": {
+    "id": "http",
+    "title": "HTTP & Status Kodları",
+    "description": "Doğru HTTP metodunu ve status kodunu seç. Bir API'nin dili budur.",
+    "icon": "🌐",
+    "sortOrder": 1
+  },
+  "questions": [
+    {
+      "key": "http-easy-01",
+      "difficulty": "Easy",
+      "type": "MultipleChoice",
+      "prompt": "POST /api/products ile yeni bir ürün başarıyla oluşturuldu. En uygun status kodu hangisi?",
+      "options": ["200 OK", "201 Created", "204 No Content", "202 Accepted"],
+      "correctOption": 1,
+      "explanation": "201 Created, yeni bir kaynağın oluşturulduğunu bildirir. Best practice: Location header'ında yeni kaynağın adresini döndürün. Minimal API'de TypedResults.Created(\"/api/products/42\", product) veya TypedResults.CreatedAtRoute(...) kullanılır."
+    },
+    {
+      "key": "http-easy-02",
+      "difficulty": "Easy",
+      "type": "MultipleChoice",
+      "prompt": "GET /api/products/999 isteğinde ürün veritabanında yok. Ne dönmeli?",
+      "options": ["400 Bad Request", "500 Internal Server Error", "204 No Content", "404 Not Found"],
+      "correctOption": 3,
+      "explanation": "Kaynak bulunamadığında 404 Not Found döner. 204 'başarılı ama gövde yok' demektir, 'bulunamadı' anlamına gelmez. İstek doğru biçimde olduğu için 400 de yanlıştır."
+    },
+    {
+      "key": "http-easy-03",
+      "difficulty": "Easy",
+      "type": "MultipleChoice",
+      "prompt": "Aşağıdaki HTTP metotlarından hangisi idempotent DEĞİLDİR?",
+      "options": ["GET", "PUT", "POST", "DELETE"],
+      "correctOption": 2,
+      "explanation": "Idempotent: aynı isteği N kez göndermek, 1 kez göndermekle aynı sunucu durumunu üretir. POST her çağrıda yeni bir kaynak oluşturabilir. PUT ve DELETE idempotenttir; GET ise hem 'safe' hem idempotenttir."
+    },
+    {
+      "key": "http-easy-04",
+      "difficulty": "Easy",
+      "type": "MultipleChoice",
+      "prompt": "İstemci zorunlu 'name' alanını göndermedi. Hangi status kodu uygun?",
+      "options": ["400 Bad Request", "401 Unauthorized", "404 Not Found", "500 Internal Server Error"],
+      "correctOption": 0,
+      "explanation": "Hata istemcide olduğu için 4xx dönülür. Doğrulama hataları için 400 ve ValidationProblemDetails gövdesi standarttır. .NET 10'da builder.Services.AddValidation() ile DataAnnotations kuralları Minimal API'lerde otomatik çalışır."
+    },
+    {
+      "key": "http-easy-05",
+      "difficulty": "Easy",
+      "type": "MultipleChoice",
+      "prompt": "5xx ile başlayan status kodları neyi ifade eder?",
+      "options": ["İstemci hatası", "Yönlendirme", "Başarı", "Sunucu hatası"],
+      "correctOption": 3,
+      "explanation": "1xx bilgi, 2xx başarı, 3xx yönlendirme, 4xx istemci hatası, 5xx sunucu hatası. 5xx dönüyorsanız sorun sizin tarafınızdadır; istemcinin isteğini değiştirmesi gerekmez."
+    },
+    {
+      "key": "http-medium-01",
+      "difficulty": "Medium",
+      "type": "MultipleChoice",
+      "prompt": "Kullanıcı giriş yapmış ama admin olmadığı için bir endpoint'e erişemiyor. Doğru kod hangisi?",
+      "options": ["401 Unauthorized", "400 Bad Request", "403 Forbidden", "404 Not Found"],
+      "correctOption": 2,
+      "explanation": "401: 'Kim olduğunu bilmiyorum' (authentication yok ya da geçersiz). 403: 'Kim olduğunu biliyorum ama iznin yok' (authorization). ASP.NET Core bunları Challenge ve Forbid ile üretir."
+    },
+    {
+      "key": "http-medium-02",
+      "difficulty": "Medium",
+      "type": "MultipleChoice",
+      "prompt": "DELETE /api/products/5 başarılı oldu ve döndürülecek bir içerik yok. En uygun yanıt hangisi?",
+      "options": ["204 No Content", "200 OK + boş JSON nesnesi", "201 Created", "202 Accepted"],
+      "correctOption": 0,
+      "explanation": "204 No Content, işlemin başarılı olduğunu ve gövde olmadığını belirtir. Minimal API'de TypedResults.NoContent() kullanılır. Silinen kaynağı geri döndürmek isterseniz 200 OK da geçerlidir."
+    },
+    {
+      "key": "http-medium-03",
+      "difficulty": "Medium",
+      "type": "MultipleChoice",
+      "prompt": "Aynı e-posta ile ikinci kez kayıt olunmaya çalışılıyor. Kaynağın mevcut durumuyla çakışmayı en iyi anlatan kod hangisi?",
+      "options": ["400 Bad Request", "500 Internal Server Error", "422 Unprocessable Content", "409 Conflict"],
+      "correctOption": 3,
+      "explanation": "409 Conflict, isteğin kaynağın mevcut durumuyla çeliştiğini belirtir (benzersizlik ihlali, eşzamanlı güncelleme çakışması gibi). Bazı ekipler bunu 400 veya 422 ile modeller; önemli olan API genelinde tutarlı olmaktır."
+    },
+    {
+      "key": "http-medium-04",
+      "difficulty": "Medium",
+      "type": "MultipleChoice",
+      "prompt": "Uzun süren bir rapor oluşturma işi kuyruğa alındı, sonuç sonra hazır olacak. Hangi kod uygun?",
+      "options": ["200 OK", "202 Accepted", "201 Created", "102 Processing"],
+      "correctOption": 1,
+      "explanation": "202 Accepted: istek kabul edildi ama işlem henüz bitmedi. Location header'ında durumu sorgulanabilecek bir adres (ör. /api/reports/jobs/17) vermek iyi bir pratiktir."
+    },
+    {
+      "key": "http-medium-05",
+      "difficulty": "Medium",
+      "type": "MultipleChoice",
+      "prompt": "Rate limit aşıldığında hangi status kodu ve header döndürülmeli?",
+      "options": ["503 Service Unavailable + Retry-After", "403 Forbidden + X-Limit", "429 Too Many Requests + Retry-After", "400 Bad Request"],
+      "correctOption": 2,
+      "explanation": "429 Too Many Requests standarttır; Retry-After header'ı istemciye ne zaman tekrar deneyebileceğini söyler. Dikkat: ASP.NET Core'un AddRateLimiter'ında RejectionStatusCode varsayılan olarak 503'tür, 429 yapmayı unutmayın. (Bu oyunun API'si de öyle yapıyor!)"
+    },
+    {
+      "key": "http-hard-01",
+      "difficulty": "Hard",
+      "type": "MultipleChoice",
+      "prompt": "İstemci 'If-Match: \"v3\"' header'ıyla PUT gönderdi ama kaynağın güncel ETag'i \"v4\". Doğru yanıt hangisi?",
+      "options": ["409 Conflict", "304 Not Modified", "428 Precondition Required", "412 Precondition Failed"],
+      "correctOption": 3,
+      "explanation": "If-Match koşulu sağlanmazsa 412 Precondition Failed dönülür. Bu, 'lost update' sorununu önleyen optimistic concurrency'nin HTTP karşılığıdır. 428, sunucu koşullu istek zorunlu tuttuğu halde istemcinin If-Match göndermemesi içindir. 304 ise GET/HEAD isteklerindeki If-None-Match içindir."
+    },
+    {
+      "key": "http-hard-02",
+      "difficulty": "Hard",
+      "type": "MultipleChoice",
+      "prompt": "PUT ve PATCH farkını hangi ifade doğru anlatır?",
+      "options": [
+        "PUT kısmi güncelleme yapar, PATCH kaynağı tamamen değiştirir",
+        "PUT kaynağı gönderilen temsille tamamen değiştirir; PATCH kısmi değişiklik uygular ve idempotent olmak zorunda değildir",
+        "İkisi de idempotent değildir",
+        "PATCH yalnızca JSON Patch formatıyla kullanılabilir"
+      ],
+      "correctOption": 1,
+      "explanation": "PUT kaynağın tam temsilini gönderir ve idempotenttir. PATCH kısmi değişiklik uygular (JSON Merge Patch RFC 7396 veya JSON Patch RFC 6902). Örneğin bir diziye 'add' işlemi her çağrıda yeni eleman eklediği için PATCH genel olarak idempotentlik garantisi vermez."
+    },
+    {
+      "key": "http-hard-03",
+      "difficulty": "Hard",
+      "type": "MultipleChoice",
+      "prompt": "Hata yanıtları için standart format hangisidir ve ASP.NET Core'da nasıl etkinleştirilir?",
+      "options": [
+        "JSON:API errors; services.AddJsonApi()",
+        "Standart yoktur, her API kendi formatını kullanmalıdır",
+        "RFC 9457 Problem Details; services.AddProblemDetails()",
+        "RFC 7807 sadece XML destekler; services.AddXmlErrors()"
+      ],
+      "correctOption": 2,
+      "explanation": "RFC 9457 (eski RFC 7807'nin yerini aldı) 'application/problem+json' formatını tanımlar: type, title, status, detail, instance. AddProblemDetails() + UseExceptionHandler() + UseStatusCodePages() ile hem exception'lar hem de gövdesiz 4xx/5xx yanıtları tutarlı hale gelir."
+    },
+    {
+      "key": "http-hard-04",
+      "difficulty": "Hard",
+      "type": "MultipleChoice",
+      "prompt": "İstemci 'Accept: application/xml' gönderiyor ama API yalnızca JSON üretiyor. En doğru yanıt hangisi?",
+      "options": ["406 Not Acceptable", "415 Unsupported Media Type", "400 Bad Request", "200 OK ile JSON döndürmek her zaman doğrudur"],
+      "correctOption": 0,
+      "explanation": "406: Sunucu Accept header'ında istenen formatı üretemiyor. 415 bunun tersidir: istemcinin gönderdiği gövdenin formatı (Content-Type) desteklenmiyor. Pratikte pek çok API varsayılan formata düşer; MVC'de MvcOptions.ReturnHttpNotAcceptable = true ile 406 açılabilir."
+    },
+    {
+      "key": "http-hard-05",
+      "difficulty": "Hard",
+      "type": "MultipleChoice",
+      "prompt": "Sunucu 'Cache-Control: no-cache' gönderiyor. Bu ne anlama gelir?",
+      "options": [
+        "Yanıt hiçbir yerde saklanamaz",
+        "Yanıt sadece tarayıcıda saklanabilir, ara proxy'lerde saklanamaz",
+        "Yanıt saklanabilir ama her kullanımdan önce sunucuyla yeniden doğrulanmalıdır",
+        "Yanıt 60 saniye boyunca saklanır"
+      ],
+      "correctOption": 2,
+      "explanation": "Yaygın bir yanlış anlama! Hiç saklamamak için 'no-store' kullanılır. 'no-cache' = sakla ama kullanmadan önce doğrula (ör. If-None-Match ile, değişmediyse 304). 'Sadece tarayıcı' anlamı 'private' direktifine aittir."
+    }
+  ]
+}

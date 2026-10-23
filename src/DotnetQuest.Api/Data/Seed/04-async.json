@@ -1,0 +1,219 @@
+{
+  "category": {
+    "id": "async",
+    "title": "Async / Await",
+    "description": "Thread'leri bloklamadan ölçeklenebilir kod yaz. Deadlock'lardan ve async void'den kaç!",
+    "icon": "⚡",
+    "sortOrder": 4
+  },
+  "questions": [
+    {
+      "key": "async-easy-01",
+      "difficulty": "Easy",
+      "type": "MultipleChoice",
+      "prompt": "Değer döndürmeyen bir async metodun dönüş tipi ne olmalı?",
+      "options": ["void", "object", "Thread", "Task"],
+      "correctOption": 3,
+      "explanation": "async void yalnızca event handler'lar içindir: beklenemez ve fırlattığı exception'lar yakalanamaz, process'i çökertebilir. Değer döndürüyorsa Task<T> kullanın."
+    },
+    {
+      "key": "async-easy-02",
+      "difficulty": "Easy",
+      "type": "MultipleChoice",
+      "prompt": "Async metotlar için .NET isimlendirme konvansiyonu hangisi?",
+      "options": ["AsyncGetProducts", "GetProductsAsync", "Get_Async_Products", "GetProducts (fark yok)"],
+      "correctOption": 1,
+      "explanation": "'Async' son eki .NET konvansiyonudur ve çağıranın metodu await etmesi gerektiğini belli eder: GetProductsAsync, SaveChangesAsync, ToListAsync."
+    },
+    {
+      "key": "async-easy-03",
+      "difficulty": "Easy",
+      "type": "MultipleChoice",
+      "prompt": "await anahtar kelimesi ne yapar?",
+      "options": [
+        "Thread'i işlem bitene kadar bloklar",
+        "Yeni bir thread oluşturur",
+        "Metodu işlem bitene kadar askıya alır ve thread'i serbest bırakır; işlem bitince kaldığı yerden devam eder",
+        "İşlemi iptal eder"
+      ],
+      "correctOption": 2,
+      "explanation": "Web API'de bu, I/O beklerken (veritabanı, HTTP) thread'in başka istekleri işleyebilmesi demektir. Sonuç: aynı donanımla çok daha fazla eşzamanlı istek. await yeni bir thread oluşturmaz."
+    },
+    {
+      "key": "async-easy-04",
+      "difficulty": "Easy",
+      "type": "MultipleChoice",
+      "prompt": "Web API'de veritabanından liste çekmenin doğru yolu hangisi?",
+      "options": [
+        "var users = await db.Users.ToListAsync(ct);",
+        "var users = db.Users.ToList();",
+        "var users = db.Users.ToListAsync().Result;",
+        "var users = Task.Run(() => db.Users.ToList()).Result;"
+      ],
+      "correctOption": 0,
+      "explanation": "Async metodu await etmek thread'i serbest bırakır. .Result ve Task.Run(...).Result thread'i bloklar; senkron ToList ise I/O boyunca thread'i meşgul eder."
+    },
+    {
+      "key": "async-easy-05",
+      "difficulty": "Easy",
+      "type": "MultipleChoice",
+      "prompt": "Endpoint'e CancellationToken parametresi neden eklenir?",
+      "options": [
+        "Derleyici zorunlu tuttuğu için",
+        "İstemci bağlantıyı kapatırsa devam eden DB/HTTP işlemlerini iptal edip kaynak israfını önlemek için",
+        "Exception'ları yakalamak için",
+        "İsteği daha hızlı hale getirmek için"
+      ],
+      "correctOption": 1,
+      "explanation": "Minimal API ve controller'larda CancellationToken parametresi HttpContext.RequestAborted'a bağlanır. Token'ı ToListAsync(ct), SaveChangesAsync(ct) gibi çağrılara aktarmayı unutmayın; aksi halde hiçbir işe yaramaz."
+    },
+    {
+      "key": "async-medium-01",
+      "difficulty": "Medium",
+      "type": "BugHunt",
+      "prompt": "Yük altında thread pool tükenmesine yol açabilecek satırı bul.",
+      "code": [
+        "app.MapGet(\"/weather/{city}\", (string city, WeatherClient client) =>",
+        "{",
+        "    var forecast = client.GetForecastAsync(city).Result;",
+        "    return TypedResults.Ok(forecast);",
+        "});"
+      ],
+      "correctLine": 3,
+      "explanation": ".Result ve .Wait() 'sync over async'tir: thread'i boşuna bekletir. ASP.NET Core'da SynchronizationContext olmadığı için klasik deadlock olmaz ama yük altında thread pool starvation yaşanır. Doğrusu: handler'ı async yapıp 'await client.GetForecastAsync(city)' kullanmak."
+    },
+    {
+      "key": "async-medium-02",
+      "difficulty": "Medium",
+      "type": "MultipleChoice",
+      "prompt": "Birbirinden bağımsız 3 HTTP çağrısını en hızlı şekilde nasıl yaparsın?",
+      "options": [
+        "Her birini sırayla await etmek",
+        "Task'ları başlatıp await Task.WhenAll(t1, t2, t3) kullanmak",
+        "Her birini Task.Run içinde .Result ile almak",
+        "Parallel.ForEach ile senkron çağırmak"
+      ],
+      "correctOption": 1,
+      "explanation": "WhenAll çağrıları eşzamanlı yürütür; toplam süre en yavaş çağrı kadar olur. Dikkat: Aynı DbContext üzerinde paralel sorgu ÇALIŞTIRILAMAZ, çünkü DbContext thread-safe değildir."
+    },
+    {
+      "key": "async-medium-03",
+      "difficulty": "Medium",
+      "type": "BugHunt",
+      "prompt": "Bu servisteki sorunlu satırı bul.",
+      "code": [
+        "public sealed class OrderService(IEmailSender email)",
+        "{",
+        "    public async void SendConfirmation(Order order)",
+        "    {",
+        "        await email.SendAsync(order.CustomerEmail, \"Siparişiniz alındı\");",
+        "    }",
+        "}"
+      ],
+      "correctLine": 3,
+      "explanation": "async void: çağıran işlemin bitmesini bekleyemez, exception'lar yakalanamaz ve process'i çökertebilir. Doğrusu: 'public async Task SendConfirmationAsync(Order order)'."
+    },
+    {
+      "key": "async-medium-04",
+      "difficulty": "Medium",
+      "type": "MultipleChoice",
+      "prompt": "ASP.NET Core uygulama kodunda ConfigureAwait(false) için hangisi doğru?",
+      "options": [
+        "Her await'e eklenmesi zorunludur",
+        "Kullanılırsa deadlock'a sebep olur",
+        "ASP.NET Core'da SynchronizationContext olmadığından uygulama kodunda genelde gerekmez; daha çok UI uygulamalarında da kullanılabilecek kütüphanelerde önerilir",
+        "Sadece .NET Framework'te vardır"
+      ],
+      "correctOption": 2,
+      "explanation": "ConfigureAwait(false), devamın orijinal context'e dönmemesini söyler. ASP.NET Core'da böyle bir context yoktur, bu yüzden uygulama kodunda fark etmez. NuGet kütüphanesi yazıyorsanız (WPF/WinForms'ta da kullanılabilir) eklemek hâlâ iyi bir pratiktir."
+    },
+    {
+      "key": "async-medium-05",
+      "difficulty": "Medium",
+      "type": "MultipleChoice",
+      "prompt": "IAsyncEnumerable<T> döndüren bir endpoint'in avantajı nedir?",
+      "options": [
+        "Yanıtı otomatik olarak önbelleğe alır",
+        "Veriyi tamamını belleğe almadan, üretildikçe stream ederek yanıta yazar",
+        "Sadece SignalR ile çalışır",
+        "Daha az kod yazmayı sağlar"
+      ],
+      "correctOption": 1,
+      "explanation": "System.Text.Json, IAsyncEnumerable'ı stream olarak serialize eder; büyük veri setlerinde bellek kullanımı düşer. EF Core'da AsAsyncEnumerable() ile kullanılabilir."
+    },
+    {
+      "key": "async-hard-01",
+      "difficulty": "Hard",
+      "type": "MultipleChoice",
+      "prompt": "ValueTask<T> ne zaman Task<T> yerine tercih edilmeli?",
+      "options": [
+        "Sonucun çoğu zaman senkron olarak hazır olduğu (ör. cache hit) sıcak yollarda allocation'dan kaçınmak için",
+        "Her zaman, çünkü daha hızlıdır",
+        "Sonucu birden fazla kez await etmek gerektiğinde",
+        "Paralel işlemleri birleştirmek için"
+      ],
+      "correctOption": 0,
+      "explanation": "ValueTask senkron tamamlanmada heap allocation yapmaz. Kısıtları: yalnızca bir kez await edilmeli, aynı anda birden fazla yerden beklenmemeli, .Result ile bloklanmamalı. Emin değilseniz Task kullanın."
+    },
+    {
+      "key": "async-hard-02",
+      "difficulty": "Hard",
+      "type": "BugHunt",
+      "prompt": "Bu endpoint'te hangi satır sorun yaratır?",
+      "code": [
+        "app.MapPost(\"/orders\", async (CreateOrder cmd, AppDbContext db, IEmailSender email, CancellationToken ct) =>",
+        "{",
+        "    var order = Order.Create(cmd);",
+        "    db.Orders.Add(order);",
+        "    await db.SaveChangesAsync(ct);",
+        "    _ = Task.Run(() => email.SendAsync(order.CustomerEmail, \"Teşekkürler\"));",
+        "    return TypedResults.Created($\"/orders/{order.Id}\", order.Id);",
+        "});"
+      ],
+      "correctLine": 6,
+      "explanation": "Fire-and-forget Task.Run: exception'lar kaybolur, uygulama kapanırken iş yarıda kalır ve IEmailSender scoped bağımlılıklar kullanıyorsa istek bittikten sonra dispose edilmiş nesnelere erişilir. Doğrusu: Channel/kuyruk + BackgroundService, Hangfire gibi bir iş kuyruğu ya da outbox deseni."
+    },
+    {
+      "key": "async-hard-03",
+      "difficulty": "Hard",
+      "type": "MultipleChoice",
+      "prompt": "Bir request handler'ı içinde 'await Task.Run(() => DoWork())' kullanmak neden genellikle anlamsızdır?",
+      "options": [
+        "Task.Run ASP.NET Core'da çalışmaz",
+        "Task.Run her zaman deadlock'a neden olur",
+        "Task.Run sadece UI uygulamalarında kullanılabilir",
+        "İstek zaten bir thread pool thread'inde çalışıyor; işi başka bir thread pool thread'ine taşıyıp beklemek fayda sağlamaz, sadece ek yük getirir"
+      ],
+      "correctOption": 3,
+      "explanation": "Task.Run, UI thread'ini serbest bırakmak için anlamlıdır. Sunucuda ise bir thread'i serbest bırakıp hemen başkasını meşgul eder. CPU-yoğun işi isteğin dışına taşımak istiyorsanız bir kuyruk ve arka plan servisi kullanın."
+    },
+    {
+      "key": "async-hard-04",
+      "difficulty": "Hard",
+      "type": "MultipleChoice",
+      "prompt": "Async bir metotta exception fırlar ve döndürülen Task hiç await edilmezse ne olur?",
+      "options": [
+        "Uygulama anında çöker",
+        "Exception Task'ın içinde saklanır ve fark edilmeyebilir; Task çöp toplayıcı tarafından toplanırken TaskScheduler.UnobservedTaskException tetiklenir",
+        "Exception otomatik loglanır ve işlem tekrar denenir",
+        "Derleyici bunu engeller"
+      ],
+      "correctOption": 1,
+      "explanation": "Await edilmeyen Task'lardaki hatalar sessizce kaybolur. Bu yüzden fire-and-forget'ten kaçının; Task'ları her zaman await edin veya bilinçli olarak hata yönetimi yapan bir arka plan mekanizmasına devredin."
+    },
+    {
+      "key": "async-hard-05",
+      "difficulty": "Hard",
+      "type": "MultipleChoice",
+      "prompt": "'lock' bloğu içinde await kullanılabilir mi? Async uyumlu kilit için ne kullanılır?",
+      "options": [
+        "Evet, lock içinde await serbesttir",
+        "Evet, ama sadece ConfigureAwait(false) ile",
+        "Hayır, derleyici izin vermez; SemaphoreSlim ve 'await semaphore.WaitAsync()' kullanılır",
+        "Hayır; onun yerine Thread.Sleep kullanılır"
+      ],
+      "correctOption": 2,
+      "explanation": "lock bir thread'e bağlıdır; await sonrası farklı bir thread'de devam edilebileceği için derleyici hata verir. SemaphoreSlim(1, 1) + try/finally içinde Release() kullanın. .NET 9'daki yeni System.Threading.Lock tipi de async uyumlu değildir."
+    }
+  ]
+}

@@ -1,0 +1,218 @@
+{
+  "category": {
+    "id": "di",
+    "title": "Dependency Injection",
+    "description": "Singleton, Scoped, Transient ve DI tuzakları. Servis ömürlerini doğru seç.",
+    "icon": "🧩",
+    "sortOrder": 3
+  },
+  "questions": [
+    {
+      "key": "di-easy-01",
+      "difficulty": "Easy",
+      "type": "MultipleChoice",
+      "prompt": "Her HTTP isteği için bir kez oluşturulan ve o istek boyunca paylaşılan servis ömrü hangisi?",
+      "options": ["Singleton", "Transient", "Scoped", "Static"],
+      "correctOption": 2,
+      "explanation": "Scoped: istek başına bir örnek. DbContext varsayılan olarak Scoped kaydedilir. Singleton: uygulama boyunca tek örnek. Transient: her enjeksiyonda yeni örnek."
+    },
+    {
+      "key": "di-easy-02",
+      "difficulty": "Easy",
+      "type": "MultipleChoice",
+      "prompt": "Bir servisi interface'i ile kaydetmenin doğru yolu hangisi?",
+      "options": [
+        "builder.Services.AddScoped<SmtpEmailSender, IEmailSender>();",
+        "builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();",
+        "Her ihtiyaç duyulan yerde new SmtpEmailSender() demek",
+        "builder.Services.Add(IEmailSender);"
+      ],
+      "correctOption": 1,
+      "explanation": "Generic parametre sırası <TService, TImplementation>: önce soyutlama, sonra somut sınıf. Tüketiciler IEmailSender'a bağımlı olur; testlerde sahte (fake) bir implementasyon verilebilir."
+    },
+    {
+      "key": "di-easy-03",
+      "difficulty": "Easy",
+      "type": "MultipleChoice",
+      "prompt": "Dependency Injection'ın temel faydası nedir?",
+      "options": [
+        "Kodun daha hızlı çalışmasını sağlar",
+        "Veritabanı bağlantısını otomatik açar",
+        "Sınıflar bağımlılıklarını kendileri oluşturmak yerine dışarıdan alır; bu gevşek bağlılık ve test edilebilirlik sağlar",
+        "Bellek kullanımını sıfırlar"
+      ],
+      "correctOption": 2,
+      "explanation": "Bir sınıf bağımlılıklarını 'new' ile kendisi oluşturursa onlara sıkıca bağlanır ve test edilemez hale gelir. DI ile bağımlılıklar constructor'dan gelir; test sırasında yerlerine sahteleri konabilir."
+    },
+    {
+      "key": "di-easy-04",
+      "difficulty": "Easy",
+      "type": "MultipleChoice",
+      "prompt": "ASP.NET Core'da önerilen enjeksiyon yöntemi hangisi?",
+      "options": [
+        "Constructor injection",
+        "Service Locator: HttpContext.RequestServices.GetService<T>()",
+        "Static global değişken",
+        "Reflection ile private alanlara yazmak"
+      ],
+      "correctOption": 0,
+      "explanation": "Constructor injection bağımlılıkları açık ve zorunlu kılar. Service Locator bağımlılıkları gizler ve test etmeyi zorlaştırır (anti-pattern). Minimal API'lerde handler parametrelerine de enjeksiyon yapılır; C# 12 primary constructor'lar yazımı kısaltır."
+    },
+    {
+      "key": "di-easy-05",
+      "difficulty": "Easy",
+      "type": "MultipleChoice",
+      "prompt": "Uygulama boyunca değişmeyen, thread-safe bir önbellek (ör. ülke listesi) için en uygun ömür hangisi?",
+      "options": ["Transient", "Scoped", "Her kullanımda new ile oluşturmak", "Singleton"],
+      "correctOption": 3,
+      "explanation": "Tek bir örnek tüm isteklerde paylaşıldığı için Singleton uygundur. Singleton servisler eşzamanlı isteklerden çağrılacağı için mutlaka thread-safe olmalıdır. Not: IMemoryCache zaten Singleton olarak gelir."
+    },
+    {
+      "key": "di-medium-01",
+      "difficulty": "Medium",
+      "type": "MultipleChoice",
+      "prompt": "Singleton bir servisin constructor'ına Scoped bir DbContext enjekte edilirse ne olur?",
+      "options": [
+        "Sorunsuz çalışır",
+        "DbContext otomatik olarak Singleton'a dönüşür ve sorun olmaz",
+        "'Captive dependency' oluşur: DbContext singleton'a hapsolur, istekler arasında paylaşılır; thread-safety ve bayat veri sorunları doğar",
+        "Her istekte yeni bir Singleton oluşturulur"
+      ],
+      "correctOption": 2,
+      "explanation": "Development ortamında scope validation bunu yakalar: 'Cannot consume scoped service from singleton'. Singleton içinde scoped bir servise ihtiyaç varsa IServiceScopeFactory ile scope açın ya da IDbContextFactory kullanın."
+    },
+    {
+      "key": "di-medium-02",
+      "difficulty": "Medium",
+      "type": "BugHunt",
+      "prompt": "Bu background service'te hatalı satırı bul.",
+      "code": [
+        "public sealed class CleanupWorker(AppDbContext db) : BackgroundService",
+        "{",
+        "    protected override async Task ExecuteAsync(CancellationToken ct)",
+        "    {",
+        "        while (!ct.IsCancellationRequested)",
+        "        {",
+        "            await db.Sessions.Where(s => s.IsExpired).ExecuteDeleteAsync(ct);",
+        "            await Task.Delay(TimeSpan.FromMinutes(5), ct);",
+        "        }",
+        "    }",
+        "}"
+      ],
+      "correctLine": 1,
+      "explanation": "BackgroundService'ler (IHostedService) Singleton olarak çalışır. Scoped AppDbContext'i constructor'dan almak captive dependency'dir. Doğrusu IServiceScopeFactory enjekte edip her döngüde 'await using var scope = scopeFactory.CreateAsyncScope();' ile DbContext çözümlemektir."
+    },
+    {
+      "key": "di-medium-03",
+      "difficulty": "Medium",
+      "type": "MultipleChoice",
+      "prompt": "IOptions<T>, IOptionsSnapshot<T> ve IOptionsMonitor<T> farkı nedir?",
+      "options": [
+        "Hepsi aynıdır, sadece isimleri farklıdır",
+        "IOptions bir kez okunur (Singleton); IOptionsSnapshot istek başına yeniden okunur (Scoped); IOptionsMonitor değişiklikleri anlık izler (Singleton) ve OnChange sunar",
+        "IOptions yalnızca testlerde kullanılır",
+        "IOptionsMonitor yalnızca Scoped servislere enjekte edilebilir"
+      ],
+      "correctOption": 1,
+      "explanation": "Ayar dosyası çalışırken değişebiliyorsa IOptionsSnapshot (istek bazlı) veya IOptionsMonitor (anlık) kullanılır. Not: IOptionsSnapshot Scoped olduğu için Singleton servislere enjekte edilemez."
+    },
+    {
+      "key": "di-medium-04",
+      "difficulty": "Medium",
+      "type": "MultipleChoice",
+      "prompt": "Aynı interface için iki implementasyonu ('sms' ve 'email' INotifier) kaydedip isimle seçmek için .NET 8 ile gelen özellik hangisi?",
+      "options": [
+        "Named options",
+        "Reflection ile tip araması",
+        "Service Locator",
+        "Keyed services: AddKeyedScoped<INotifier, SmsNotifier>(\"sms\") ve [FromKeyedServices(\"sms\")]"
+      ],
+      "correctOption": 3,
+      "explanation": "Keyed services ile aynı servis tipini farklı anahtarlarla kaydedip tüketici tarafında [FromKeyedServices(\"sms\")] attribute'u veya GetRequiredKeyedService<T>(key) ile seçebilirsiniz."
+    },
+    {
+      "key": "di-medium-05",
+      "difficulty": "Medium",
+      "type": "MultipleChoice",
+      "prompt": "IClock için arka arkaya iki farklı AddScoped kaydı yapıldı. Constructor'a IClock istenince hangisi gelir?",
+      "options": ["Son kaydedilen", "İlk kaydedilen", "Uygulama exception fırlatır", "Rastgele biri"],
+      "correctOption": 0,
+      "explanation": "Son kayıt kazanır. Tüm kayıtları almak için IEnumerable<IClock> enjekte edilir. Kütüphaneler, kullanıcının yaptığı kaydı ezmemek için TryAddScoped gibi TryAdd* metotlarını kullanır."
+    },
+    {
+      "key": "di-hard-01",
+      "difficulty": "Hard",
+      "type": "BugHunt",
+      "prompt": "Bu kodda bellek sızıntısına yol açan satırı bul. (ReportExporter, IDisposable implemente ediyor.)",
+      "code": [
+        "var services = new ServiceCollection();",
+        "services.AddTransient<ReportExporter>();",
+        "using var provider = services.BuildServiceProvider();",
+        "",
+        "for (var i = 0; i < 1_000_000; i++)",
+        "{",
+        "    var exporter = provider.GetRequiredService<ReportExporter>();",
+        "    exporter.Export(i);",
+        "}"
+      ],
+      "correctLine": 7,
+      "explanation": "Container, çözdüğü IDisposable Transient nesneleri dispose edebilmek için takip eder ve ancak kendisi (ya da ait oldukları scope) dispose edilince bırakır. Root provider'dan döngüde çözmek milyonlarca nesneyi bellekte tutar. Çözüm: Her iş birimi için 'using var scope = provider.CreateScope();' açmak."
+    },
+    {
+      "key": "di-hard-02",
+      "difficulty": "Hard",
+      "type": "MultipleChoice",
+      "prompt": "Singleton bir servis içinde her işlemde DbContext'e ihtiyaç var. En doğru yaklaşım hangisi?",
+      "options": [
+        "DbContext'i Singleton olarak kaydetmek",
+        "IServiceProvider enjekte edip root provider'dan GetService çağırmak",
+        "DbContext'i static bir alanda tutmak",
+        "IDbContextFactory<AppDbContext> kullanmak veya IServiceScopeFactory ile her işlemde scope açmak"
+      ],
+      "correctOption": 3,
+      "explanation": "DbContext thread-safe değildir ve kısa ömürlü olmalıdır. IDbContextFactory (AddDbContextFactory) singleton ve arka plan senaryoları için tasarlanmıştır. Root provider'dan scoped bir servis çözmek onu fiilen singleton yapar."
+    },
+    {
+      "key": "di-hard-03",
+      "difficulty": "Hard",
+      "type": "MultipleChoice",
+      "prompt": "ServiceProviderOptions.ValidateOnBuild = true ne işe yarar?",
+      "options": [
+        "Model validation'ı açar",
+        "Uygulama başlarken tüm kayıtları kontrol eder; eksik bağımlılıkları (ValidateScopes ile birlikte captive dependency'leri) ilk istekten önce yakalar",
+        "Sadece unit testlerde çalışır",
+        "Veritabanı şemasını doğrular"
+      ],
+      "correctOption": 1,
+      "explanation": "Development ortamında ValidateOnBuild ve ValidateScopes varsayılan olarak açıktır. Hataları ilk istekte değil, açılışta yakalamak 'fail fast' ilkesidir. Production'da açmak başlangıç süresini biraz uzatır."
+    },
+    {
+      "key": "di-hard-04",
+      "difficulty": "Hard",
+      "type": "MultipleChoice",
+      "prompt": "HttpClient'ı ASP.NET Core'da doğru kullanmanın önerilen yolu hangisi?",
+      "options": [
+        "Her istekte 'using var client = new HttpClient();'",
+        "HttpClient'ı Scoped olarak kaydetmek",
+        "IHttpClientFactory veya typed client: builder.Services.AddHttpClient<GitHubClient>()",
+        "Hiç ayar yapmadan tek bir static HttpClient her durumda en iyisidir"
+      ],
+      "correctOption": 2,
+      "explanation": "Her istekte new HttpClient socket tükenmesine (TIME_WAIT'te bekleyen portlar) yol açar. Ayarsız uzun ömürlü static client ise DNS değişikliklerini kaçırabilir (PooledConnectionLifetime ayarlanmadıysa). IHttpClientFactory handler havuzunu yönetir ve AddStandardResilienceHandler ile retry/timeout entegrasyonu sağlar."
+    },
+    {
+      "key": "di-hard-05",
+      "difficulty": "Hard",
+      "type": "MultipleChoice",
+      "prompt": "Typed client (AddHttpClient<GitHubClient>) bir Singleton servisin constructor'ına enjekte edilirse ne olur?",
+      "options": [
+        "Derleme hatası olur",
+        "Typed client'lar Transient'tır; singleton'a hapsolunca handler hiç yenilenmez ve DNS değişiklikleri kaçırılabilir",
+        "Her istekte yeni bir socket açılır",
+        "Hiçbir sorun olmaz, önerilen yöntem budur"
+      ],
+      "correctOption": 1,
+      "explanation": "Typed client'lar Transient olarak kaydedilir ve kısa ömürlü kullanılmak üzere tasarlanmıştır. Singleton içinde gerekiyorsa IHttpClientFactory'yi enjekte edip her seferinde CreateClient çağırın ya da PooledConnectionLifetime ayarlı tek bir SocketsHttpHandler kullanın."
+    }
+  ]
+}

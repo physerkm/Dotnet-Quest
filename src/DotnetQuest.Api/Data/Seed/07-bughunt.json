@@ -1,0 +1,284 @@
+{
+  "category": {
+    "id": "bughunt",
+    "title": "Bug Avı",
+    "description": "Koddaki hatalı satıra tıkla! Kod inceleme refleksini geliştir.",
+    "icon": "🐞",
+    "sortOrder": 7
+  },
+  "questions": [
+    {
+      "key": "bughunt-easy-01",
+      "difficulty": "Easy",
+      "type": "BugHunt",
+      "prompt": "Bu endpoint'te kaynak sorununa yol açan satırı bul.",
+      "code": [
+        "app.MapGet(\"/repos/{user}\", async (string user) =>",
+        "{",
+        "    using var client = new HttpClient();",
+        "    var json = await client.GetStringAsync($\"https://api.github.com/users/{user}/repos\");",
+        "    return TypedResults.Ok(json);",
+        "});"
+      ],
+      "correctLine": 3,
+      "explanation": "Her istekte yeni HttpClient oluşturmak, yük altında socket tükenmesine (TIME_WAIT'te bekleyen portlar) yol açar. IHttpClientFactory veya typed client kullanın: builder.Services.AddHttpClient<GitHubClient>()."
+    },
+    {
+      "key": "bughunt-easy-02",
+      "difficulty": "Easy",
+      "type": "BugHunt",
+      "prompt": "Bu yanıt DTO'sunda güvenlik açığı olan satırı bul.",
+      "code": [
+        "public sealed class UserResponse",
+        "{",
+        "    public int Id { get; set; }",
+        "    public string Email { get; set; } = \"\";",
+        "    public string PasswordHash { get; set; } = \"\";",
+        "    public string DisplayName { get; set; } = \"\";",
+        "}"
+      ],
+      "correctLine": 5,
+      "explanation": "Şifre hash'i asla istemciye gönderilmemelidir; hash'ler çevrimdışı kırılmaya açıktır. Yanıt DTO'ları yalnızca istemcinin görmesi gereken alanları içermelidir."
+    },
+    {
+      "key": "bughunt-easy-03",
+      "difficulty": "Easy",
+      "type": "BugHunt",
+      "prompt": "Hassas bilgiyi sızdıran satırı bul.",
+      "code": [
+        "var builder = WebApplication.CreateBuilder(args);",
+        "var connectionString = \"Server=prod-db;User Id=sa;Password=P@ssw0rd!\";",
+        "builder.Services.AddDbContext<AppDbContext>(o => o.UseSqlServer(connectionString));",
+        "var app = builder.Build();"
+      ],
+      "correctLine": 2,
+      "explanation": "Şifreyi koda gömmek, onu Git geçmişine ve derlenmiş DLL'e kalıcı olarak yazar. builder.Configuration.GetConnectionString(\"Default\") kullanın; değeri User Secrets, environment variable veya Key Vault'tan verin."
+    },
+    {
+      "key": "bughunt-easy-04",
+      "difficulty": "Easy",
+      "type": "BugHunt",
+      "prompt": "Yanlış HTTP yanıtı üreten satırı bul.",
+      "code": [
+        "app.MapGet(\"/products/{id:int}\", async (int id, AppDbContext db, CancellationToken ct) =>",
+        "{",
+        "    var product = await db.Products.FindAsync([id], ct);",
+        "    if (product is null)",
+        "        return Results.Ok(null);",
+        "    return Results.Ok(product.ToDto());",
+        "});"
+      ],
+      "correctLine": 5,
+      "explanation": "Kaynak bulunamadığında 200 OK + null değil, 404 Not Found dönülmelidir. İpucu: Results yerine TypedResults ve dönüş tipi olarak Results<Ok<ProductDto>, NotFound> kullanırsanız OpenAPI dokümanı da her iki yanıtı otomatik gösterir."
+    },
+    {
+      "key": "bughunt-easy-05",
+      "difficulty": "Easy",
+      "type": "BugHunt",
+      "prompt": "Async best practice'e aykırı satırı bul.",
+      "code": [
+        "app.MapGet(\"/users\", async (AppDbContext db, CancellationToken ct) =>",
+        "{",
+        "    var count = await db.Users.CountAsync(ct);",
+        "    var names = db.Users.OrderBy(u => u.Id).Take(50).Select(u => u.Name).ToList();",
+        "    return TypedResults.Ok(new { count, names });",
+        "});"
+      ],
+      "correctLine": 4,
+      "explanation": "Async bir handler içinde senkron ToList(), veritabanı yanıtını beklerken thread'i bloklar. 'await ... .ToListAsync(ct)' kullanın."
+    },
+    {
+      "key": "bughunt-medium-01",
+      "difficulty": "Medium",
+      "type": "BugHunt",
+      "prompt": "Logging best practice'ine aykırı satırı bul.",
+      "code": [
+        "public sealed class OrderService(ILogger<OrderService> logger)",
+        "{",
+        "    public void Ship(Order order)",
+        "    {",
+        "        logger.LogInformation($\"Sipariş {order.Id} kargoya verildi\");",
+        "    }",
+        "}"
+      ],
+      "correctLine": 5,
+      "explanation": "String interpolation yerine message template kullanın: logger.LogInformation(\"Sipariş {OrderId} kargoya verildi\", order.Id). Böylece structured logging olur (OrderId alanına göre arama yapılabilir) ve log seviyesi kapalıyken string oluşturma maliyeti ödenmez. Daha da iyisi: [LoggerMessage] source generator."
+    },
+    {
+      "key": "bughunt-medium-02",
+      "difficulty": "Medium",
+      "type": "BugHunt",
+      "prompt": "İstemciye fazla bilgi sızdıran satırı bul.",
+      "code": [
+        "app.UseExceptionHandler(errorApp => errorApp.Run(async context =>",
+        "{",
+        "    var error = context.Features.Get<IExceptionHandlerFeature>()!.Error;",
+        "    context.Response.StatusCode = 500;",
+        "    await context.Response.WriteAsJsonAsync(new { error.Message, error.StackTrace });",
+        "}));"
+      ],
+      "correctLine": 5,
+      "explanation": "Stack trace; dosya yollarını, kütüphane sürümlerini ve iç yapıyı saldırgana gösterir. Detayı sunucuda loglayın, istemciye genel bir ProblemDetails ve takip için traceId döndürün."
+    },
+    {
+      "key": "bughunt-medium-03",
+      "difficulty": "Medium",
+      "type": "BugHunt",
+      "prompt": "Over-posting açığının kaynağı olan satırı bul. (İpucu: istemci gövdeye \"isAdmin\": true ekleyebilir.)",
+      "code": [
+        "app.MapPut(\"/users/me\", async (User input, ClaimsPrincipal principal, AppDbContext db, CancellationToken ct) =>",
+        "{",
+        "    input.Id = principal.GetUserId();",
+        "    db.Users.Update(input);",
+        "    await db.SaveChangesAsync(ct);",
+        "    return TypedResults.NoContent();",
+        "});"
+      ],
+      "correctLine": 1,
+      "explanation": "Handler, istek gövdesini doğrudan User entity'sine bağlıyor; istemci entity'deki her alanı (IsAdmin, TotalXp...) gönderebilir ve 4. satırdaki Update hepsini yazar. Çözüm: UpdateProfileRequest(string DisplayName) gibi bir DTO alıp yalnızca izin verilen alanları kopyalamak."
+    },
+    {
+      "key": "bughunt-medium-04",
+      "difficulty": "Medium",
+      "type": "BugHunt",
+      "prompt": "CancellationToken'ın kaybolduğu satırı bul.",
+      "code": [
+        "app.MapGet(\"/reports/{id:int}\", async (int id, ReportService reports, CancellationToken ct) =>",
+        "{",
+        "    var report = await reports.BuildAsync(id, ct);",
+        "    return TypedResults.Ok(report);",
+        "});",
+        "",
+        "public sealed class ReportService(AppDbContext db)",
+        "{",
+        "    public async Task<ReportDto> BuildAsync(int id, CancellationToken ct)",
+        "    {",
+        "        var rows = await db.Sales.Where(s => s.ReportId == id).ToListAsync();",
+        "        return ReportDto.From(rows);",
+        "    }",
+        "}"
+      ],
+      "correctLine": 11,
+      "explanation": "Token metoda kadar gelmiş ama ToListAsync'e aktarılmamış; istemci vazgeçse bile ağır sorgu çalışmaya devam eder. 'ToListAsync(ct)' olmalı. Token'ı zincirin sonuna kadar taşıyın."
+    },
+    {
+      "key": "bughunt-medium-05",
+      "difficulty": "Medium",
+      "type": "BugHunt",
+      "prompt": "Bu cache Singleton olarak kayıtlı. Eşzamanlı isteklerde veri bozulmasına yol açan tip seçimi hangi satırda?",
+      "code": [
+        "public sealed class ExchangeRateCache",
+        "{",
+        "    private readonly Dictionary<string, decimal> _rates = new();",
+        "",
+        "    public decimal Get(string currency, Func<string, decimal> load)",
+        "    {",
+        "        if (!_rates.TryGetValue(currency, out var rate))",
+        "        {",
+        "            rate = load(currency);",
+        "            _rates[currency] = rate;",
+        "        }",
+        "        return rate;",
+        "    }",
+        "}"
+      ],
+      "correctLine": 3,
+      "explanation": "Dictionary<TKey, TValue> eşzamanlı yazmalara karşı thread-safe değildir; iç yapısı bozulabilir ve sonsuz döngü bile oluşabilir. Singleton'da ConcurrentDictionary (GetOrAdd) ya da IMemoryCache / HybridCache kullanın."
+    },
+    {
+      "key": "bughunt-hard-01",
+      "difficulty": "Hard",
+      "type": "BugHunt",
+      "prompt": "Bu middleware'de eşzamanlı isteklerde patlayacak satırı bul.",
+      "code": [
+        "public sealed class TenantMiddleware(RequestDelegate next, AppDbContext db)",
+        "{",
+        "    public async Task InvokeAsync(HttpContext context)",
+        "    {",
+        "        var host = context.Request.Host.Host;",
+        "        var tenant = await db.Tenants.SingleAsync(t => t.Host == host);",
+        "        context.Items[\"Tenant\"] = tenant;",
+        "        await next(context);",
+        "    }",
+        "}"
+      ],
+      "correctLine": 1,
+      "explanation": "Conventional middleware bir kez oluşturulur (fiilen singleton). Constructor'dan alınan DbContext tüm isteklerde paylaşılır ve 'A second operation was started on this context instance' hatası verir. Development'ta scope validation açılışta yakalar, production'da sessizce bozulur. Scoped servisleri InvokeAsync parametresi olarak alın."
+    },
+    {
+      "key": "bughunt-hard-02",
+      "difficulty": "Hard",
+      "type": "BugHunt",
+      "prompt": "Bu API key kontrolünde güvenlik açığı olan satırı bul.",
+      "code": [
+        "app.Use(async (context, next) =>",
+        "{",
+        "    var provided = context.Request.Headers[\"X-Api-Key\"].ToString();",
+        "    var expected = app.Configuration[\"ApiKey\"]!;",
+        "    if (provided != expected)",
+        "    {",
+        "        context.Response.StatusCode = StatusCodes.Status401Unauthorized;",
+        "        return;",
+        "    }",
+        "    await next(context);",
+        "});"
+      ],
+      "correctLine": 5,
+      "explanation": "Normal string karşılaştırması ilk farklı karakterde durur; yanıt sürelerindeki farklar ölçülerek anahtar karakter karakter tahmin edilebilir (timing attack). Byte dizilerini CryptographicOperations.FixedTimeEquals ile sabit sürede karşılaştırın. Daha da iyisi, bir authentication handler yazın."
+    },
+    {
+      "key": "bughunt-hard-03",
+      "difficulty": "Hard",
+      "type": "BugHunt",
+      "prompt": "Saldırgan '?page=1&pageSize=5000000' gönderiyor. Bu isteğin veritabanını ve belleği zorlamasına izin veren satır hangisi?",
+      "code": [
+        "app.MapGet(\"/products\", async (int page, int pageSize, AppDbContext db, CancellationToken ct) =>",
+        "{",
+        "    var items = await db.Products",
+        "        .AsNoTracking()",
+        "        .OrderBy(p => p.Id)",
+        "        .Skip((page - 1) * pageSize)",
+        "        .Take(pageSize)",
+        "        .Select(p => new ProductDto(p.Id, p.Name, p.Price))",
+        "        .ToListAsync(ct);",
+        "    return TypedResults.Ok(items);",
+        "});"
+      ],
+      "correctLine": 7,
+      "explanation": "İstemciden gelen pageSize sınırsız kullanılıyor. Math.Clamp(pageSize, 1, 100) ile sınırlayın ya da [Range(1, 100)] ile doğrulayın. page < 1 de negatif Skip'e (exception) yol açar; onu da doğrulayın."
+    },
+    {
+      "key": "bughunt-hard-04",
+      "difficulty": "Hard",
+      "type": "BugHunt",
+      "prompt": "Bu kuponun geçerlilik kontrolünde hatalı satırı bul.",
+      "code": [
+        "public sealed class Coupon",
+        "{",
+        "    public DateTime ExpiresAtUtc { get; init; }",
+        "",
+        "    public bool IsValid() => DateTime.Now < ExpiresAtUtc;",
+        "}"
+      ],
+      "correctLine": 5,
+      "explanation": "DateTime.Now sunucunun yerel saatidir, ExpiresAtUtc ise UTC; Türkiye'de (UTC+3) kuponlar 3 saat erken geçersiz olur. Ayrıca statik saate bağlı kod test edilemez. .NET 8+ TimeProvider kullanın: IsValid(TimeProvider clock) => clock.GetUtcNow().UtcDateTime < ExpiresAtUtc. Testte FakeTimeProvider ile zamanı kontrol edebilirsiniz."
+    },
+    {
+      "key": "bughunt-hard-05",
+      "difficulty": "Hard",
+      "type": "BugHunt",
+      "prompt": "Bu dashboard endpoint'i çalışma anında exception fırlatıyor. Hangi satır?",
+      "code": [
+        "app.MapGet(\"/dashboard\", async (AppDbContext db, CancellationToken ct) =>",
+        "{",
+        "    var usersTask = db.Users.CountAsync(ct);",
+        "    var ordersTask = db.Orders.CountAsync(ct);",
+        "    await Task.WhenAll(usersTask, ordersTask);",
+        "    return TypedResults.Ok(new { users = usersTask.Result, orders = ordersTask.Result });",
+        "});"
+      ],
+      "correctLine": 4,
+      "explanation": "Aynı DbContext üzerinde ilk sorgu bitmeden ikincisi başlatılıyor: 'A second operation was started on this context instance'. DbContext thread-safe değildir. Sorguları sırayla await edin; paralellik gerçekten gerekiyorsa IDbContextFactory ile ayrı context'ler kullanın. (6. satırdaki .Result burada güvenli, çünkü task'lar zaten tamamlandı.)"
+    }
+  ]
+}
