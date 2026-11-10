@@ -1,21 +1,23 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <UserSecretsId>fd2587fe-38a5-48d9-96bb-81ce21e47369</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" Version="10.0.13" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.13" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.13" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.13">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.13" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.13" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <PackageReference Include="Scalar.AspNetCore" Version="2.18.3" />
   </ItemGroup>
 
@@ -23,5 +25,36 @@
     <!-- Soru içerikleri DLL'e gömülür; böylece testlerde ve publish'te dosya yolu derdi olmaz. -->
     <EmbeddedResource Include="Data\Seed\*.json" />
   </ItemGroup>
+
+  <PropertyGroup>
+    <ClientRoot>$(MSBuildProjectDirectory)\..\..\client\</ClientRoot>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      wwwroot, React uygulamasının (client) build çıktısıdır ve publish sırasında yeniden üretilir (aşağıdaki target).
+      MSBuild'in buradaki eski dosyaları takip etmemesi için normal içerikten çıkarılır.
+    -->
+    <Content Remove="wwwroot\**" />
+  </ItemGroup>
+
+  <!--
+    dotnet publish (ve Visual Studio > Publish) sırasında React'i derler ve çıktısını yayına ekler.
+    Böylece "npm run build'i unuttum" diye eski ya da boş bir arayüz yayına çıkmaz.
+    Dockerfile'da React ayrı bir aşamada derlendiği için orada -p:SkipClientBuild=true ile npm adımları atlanır.
+  -->
+  <Target Name="PublishClient" AfterTargets="ComputeFilesToPublish">
+    <Exec Command="npm ci" WorkingDirectory="$(ClientRoot)" Condition="'$(SkipClientBuild)' != 'true' And !Exists('$(ClientRoot)node_modules')" />
+    <Exec Command="npm run build" WorkingDirectory="$(ClientRoot)" Condition="'$(SkipClientBuild)' != 'true'" />
+
+    <ItemGroup>
+      <ClientFiles Include="wwwroot\**" />
+      <ResolvedFileToPublish Include="@(ClientFiles->'%(FullPath)')" Exclude="@(ResolvedFileToPublish)">
+        <RelativePath>%(ClientFiles.Identity)</RelativePath>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+        <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      </ResolvedFileToPublish>
+    </ItemGroup>
+  </Target>
 
 </Project>

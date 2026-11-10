@@ -16,9 +16,12 @@ var app = builder.Build();
 await app.InitializeDatabaseAsync();
 
 // --- Middleware pipeline: SIRA ÖNEMLİ! ---
-// 1) Exception handler en başta: sonraki tüm middleware'lerin hatalarını yakalar.
+// 1) Proxy'nin eklediği X-Forwarded-For/Proto başlıklarından gerçek istemci IP'sini ve HTTPS bilgisini alır.
+//    Bu bilgileri kullanan her şeyden (HTTPS yönlendirme, cookie, rate limit) önce gelmeli.
+app.UseForwardedHeaders();
+// 2) Exception handler: sonraki tüm middleware'lerin hatalarını yakalar.
 app.UseExceptionHandler();
-// 2) Gövdesi boş 4xx/5xx yanıtlarını (ör. 404, 429) ProblemDetails'e çevirir.
+// 3) Gövdesi boş 4xx/5xx yanıtlarını (ör. 404, 429) ProblemDetails'e çevirir.
 app.UseStatusCodePages();
 
 if (app.Environment.IsDevelopment())
@@ -33,15 +36,15 @@ else
     app.UseHttpsRedirection();
 }
 
-// 3) Production'da React build'i (wwwroot) buradan sunulur; statik dosyalar auth'a girmeden kısa devre yapar.
+// 4) Production'da React build'i (wwwroot) buradan sunulur; statik dosyalar auth'a girmeden kısa devre yapar.
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
-// 4) Önce "kimsin?" (authentication), sonra "yetkin var mı?" (authorization).
+// 5) Önce "kimsin?" (authentication), sonra "yetkin var mı?" (authorization).
 app.UseAuthentication();
 app.UseAuthorization();
 
-// 5) Rate limiter kullanıcı id'sine göre bölümlediği için authentication'dan SONRA gelir.
+// 6) Rate limiter kullanıcı id'sine göre bölümlediği için authentication'dan SONRA gelir.
 app.UseRateLimiter();
 app.UseOutputCache();
 

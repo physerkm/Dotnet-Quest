@@ -1,0 +1,10 @@
+**/bin/
+**/obj/
+**/node_modules/
+src/DotnetQuest.Api/wwwroot/
+**/*.db
+**/*.db-shm
+**/*.db-wal
+.git/
+.vs/
+tests/

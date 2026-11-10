@@ -3,6 +3,8 @@ using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using DotnetQuest.Api.Data;
 using DotnetQuest.Api.Domain;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Options;
 
 namespace DotnetQuest.Api.Common;
@@ -40,6 +42,24 @@ public static class ApiExtensions
             })
             .AddEntityFrameworkStores<AppDbContext>();
         services.AddAuthorization();
+
+        // Giriş cookie'lerini şifreleyen anahtarlar varsayılan olarak sunucunun diskinde tutulur. Container'da veya
+        // sunucu değişince kaybolurlar ve herkesin oturumu kapanır. Veritabanında saklayınca her ortamda kalıcı olurlar.
+        services.AddDataProtection()
+            .SetApplicationName("DotnetQuest")
+            .PersistKeysToDbContext<AppDbContext>();
+
+        // Render gibi barındırma platformlarında istekler uygulamaya bir proxy üzerinden gelir. Bu ayar olmadan herkesin
+        // IP'si proxy'nin IP'si görünür (IP bazlı rate limit tüm siteye ortak olur) ve HTTPS istekleri HTTP sanılır.
+        services.Configure<ForwardedHeadersOptions>(options =>
+        {
+            options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+
+            // Platform proxy'sinin IP adresi sabit olmadığı için "yalnızca şu proxy'lere güven" listesi temizlenir.
+            // Bu, uygulamaya yalnızca platformun proxy'si üzerinden ulaşılabildiği sürece güvenlidir.
+            options.KnownIPNetworks.Clear();
+            options.KnownProxies.Clear();
+        });
 
         services.AddRateLimiting();
         services.AddOutputCache();

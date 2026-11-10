@@ -1,15 +1,18 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using DotnetQuest.Api.Data;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.Configuration;
+using Npgsql;
 
 namespace DotnetQuest.Api.Tests.Infrastructure;
 
 /// <summary>
-/// Gerçek uygulamayı bellekte ayağa kaldırır (gerçek pipeline, gerçek EF Core + SQLite).
-/// Her test çalıştırması kendi geçici veritabanını kullanır.
+/// Gerçek uygulamayı bellekte ayağa kaldırır (gerçek pipeline, gerçek EF Core + PostgreSQL).
+/// Bağlantı bilgisi uygulamanın kendi ayarından (yerelde user-secrets) alınır, sadece veritabanı adı değiştirilir:
+/// her test çalıştırması kendi geçici veritabanını oluşturur ve sonunda siler.
 /// </summary>
 public sealed class ApiFactory : WebApplicationFactory<Program>
 {
@@ -18,11 +21,23 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
         Converters = { new JsonStringEnumConverter() },
     };
 
-    private readonly string _databasePath = Path.Combine(Path.GetTempPath(), $"dotnetquest-tests-{Guid.NewGuid():N}.db");
+    private string? _connectionString;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        builder.UseSetting("ConnectionStrings:Default", $"Data Source={_databasePath}");
+        builder.ConfigureAppConfiguration((context, config) =>
+        {
+            var baseConnectionString = context.Configuration.GetConnectionString("Default")
+                ?? throw new InvalidOperationException(
+                    "Testler için ConnectionStrings:Default ayarı gerekli. README'deki 'Çalıştırma' adımlarına bakın.");
+
+            _connectionString = new NpgsqlConnectionStringBuilder(PostgresConnectionString.Normalize(baseConnectionString))
+            {
+                Database = $"dotnetquest_tests_{Guid.NewGuid():N}",
+            }.ConnectionString;
+
+            config.AddInMemoryCollection(new Dictionary<string, string?> { ["ConnectionStrings:Default"] = _connectionString });
+        });
 
         // Testler hızlı ve çok istek attığı için rate limit'i gevşetiyoruz.
         builder.UseSetting("RateLimiting:GameplayPermitLimit", "100000");
@@ -50,16 +65,29 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
+        DropTestDatabase();
+    }
 
-        SqliteConnection.ClearAllPools();
-        try
+    private void DropTestDatabase()
+    {
+        if (_connectionString is null)
         {
-            File.Delete(_databasePath);
+            return;
         }
-        catch (IOException)
-        {
-            // Geçici dosya; silinemezse sorun değil.
-        }
+
+        // Kendi veritabanımızı silerken ona bağlı olamayız; sunucudaki varsayılan "postgres" veritabanına bağlanıyoruz.
+        var connection = new NpgsqlConnectionStringBuilder(_connectionString);
+        var testDatabase = connection.Database;
+        connection.Database = "postgres";
+
+        NpgsqlConnection.ClearAllPools();
+        using var db = new NpgsqlConnection(connection.ConnectionString);
+        db.Open();
+        using var command = db.CreateCommand();
+
+        // WITH (FORCE): açık kalmış bağlantı olsa bile siler (PostgreSQL 13+).
+        command.CommandText = $"DROP DATABASE IF EXISTS \"{testDatabase}\" WITH (FORCE)";
+        command.ExecuteNonQuery();
     }
 }
 
