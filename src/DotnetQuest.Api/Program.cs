@@ -16,7 +16,7 @@ var app = builder.Build();
 await app.InitializeDatabaseAsync();
 
 // --- Middleware pipeline: SIRA ÖNEMLİ! ---
-// 1) Proxy'nin eklediği X-Forwarded-For/Proto başlıklarından gerçek istemci IP'sini ve HTTPS bilgisini alır.
+// 1) Proxy'lerin eklediği başlıklardan (CF-Connecting-IP, X-Forwarded-Proto) gerçek istemci IP'sini ve HTTPS bilgisini alır.
 //    Bu bilgileri kullanan her şeyden (HTTPS yönlendirme, cookie, rate limit) önce gelmeli.
 app.UseForwardedHeaders();
 // 2) Exception handler: sonraki tüm middleware'lerin hatalarını yakalar.

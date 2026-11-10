@@ -161,7 +161,7 @@ Hatalı bir soru (ör. şıkların dışında `correctOption`) uygulamanın aç�
 | Integration testler (gerçek PostgreSQL, test başına geçici veritabanı) | `SessionEndpointsTests.cs`, `ApiFactory.cs` |
 | Şifreler repoda değil: yerelde user-secrets, sunucuda ortam değişkeni | `DatabaseExtensions.cs` |
 | Çok aşamalı Docker build, root olmayan kullanıcıyla çalışan küçük imaj | `Dockerfile` |
-| Proxy arkasında gerçek istemci IP'si ve HTTPS bilgisi (Forwarded Headers) | `ApiExtensions.cs`, `Program.cs` |
+| Proxy arkasında gerçek istemci IP'si (Cloudflare'in `CF-Connecting-IP` başlığı, sahte `X-Forwarded-For`'a kanmaz) ve HTTPS bilgisi | `ApiExtensions.cs`, `ForwardedHeadersTests.cs` |
 | Data Protection anahtarları veritabanında (yeniden deploy'da oturumlar kapanmaz) | `AppDbContext.cs`, `ApiExtensions.cs` |
 | React build'i publish'e otomatik dahil | `DotnetQuest.Api.csproj` |
 

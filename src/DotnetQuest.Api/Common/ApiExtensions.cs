@@ -49,11 +49,19 @@ public static class ApiExtensions
             .SetApplicationName("DotnetQuest")
             .PersistKeysToDbContext<AppDbContext>();
 
-        // Render gibi barındırma platformlarında istekler uygulamaya bir proxy üzerinden gelir. Bu ayar olmadan herkesin
-        // IP'si proxy'nin IP'si görünür (IP bazlı rate limit tüm siteye ortak olur) ve HTTPS istekleri HTTP sanılır.
+        // Render'da istekler uygulamaya iki proxy'den geçerek gelir: önce Cloudflare, sonra Render'ın kendi proxy'si.
+        // Bu ayar olmadan herkesin IP'si proxy'nin IP'si görünür (IP bazlı rate limit bozulur) ve HTTPS istekleri HTTP sanılır.
         services.Configure<ForwardedHeadersOptions>(options =>
         {
             options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+
+            // İstemci IP'si X-Forwarded-For yerine Cloudflare'in CF-Connecting-IP başlığından okunur:
+            // - X-Forwarded-For'un en sağındaki değer Cloudflare sunucusunun IP'sidir ve istekten isteğe değişir.
+            // - Soldaki değerlere güvenilmez: istemci bu başlığı kendisi gönderip sahte IP yazabilir.
+            // - CF-Connecting-IP'yi Cloudflare her istekte kendisi yazar, istemci değiştiremez.
+            // Başlık yoksa (ör. yerelde) bağlantının kendi IP'si kullanılır. Önünde Cloudflare olmayan bir platforma
+            // geçilirse bu satır o platformun belgelediği başlığa göre güncellenmeli.
+            options.ForwardedForHeaderName = "CF-Connecting-IP";
 
             // Platform proxy'sinin IP adresi sabit olmadığı için "yalnızca şu proxy'lere güven" listesi temizlenir.
             // Bu, uygulamaya yalnızca platformun proxy'si üzerinden ulaşılabildiği sürece güvenlidir.
